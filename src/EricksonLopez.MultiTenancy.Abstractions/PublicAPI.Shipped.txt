@@ -1,0 +1,15 @@
+#nullable enable
+EricksonLopez.MultiTenancy.ITenantContext
+EricksonLopez.MultiTenancy.ITenantInfo
+EricksonLopez.MultiTenancy.ITenantLookupStore
+EricksonLopez.MultiTenancy.ITenantLookupStore<TTenant>
+EricksonLopez.MultiTenancy.ITenantResolver
+EricksonLopez.MultiTenancy.ITenantScope
+EricksonLopez.MultiTenancy.ITenantScopeFactory
+EricksonLopez.MultiTenancy.ITenantStore
+EricksonLopez.MultiTenancy.ITenantStore<TTenant>
+EricksonLopez.MultiTenancy.TenantErrors
+EricksonLopez.MultiTenancy.TenantId
+EricksonLopez.MultiTenancy.TenantInfo
+EricksonLopez.MultiTenancy.TenantNotFoundException
+EricksonLopez.MultiTenancy.TenantResolutionSource

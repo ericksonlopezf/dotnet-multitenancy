@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <Description>Dapper integration for multi-tenant applications: tenant parameter injection and connection string resolution.</Description>
+    <PackageTags>$(CommonPackageTags);dapper;sql;micro-orm;data-access;database;native-aot</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EricksonLopez.MultiTenancy.Abstractions\EricksonLopez.MultiTenancy.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

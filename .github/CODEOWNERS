@@ -1,0 +1,11 @@
+# Global code ownership for the EricksonLopez.MultiTenancy ecosystem
+* @ericksonlopezf
+
+# Build & CI/CD Pipelines
+.github/ @ericksonlopezf
+Directory.Build.props @ericksonlopezf
+Directory.Packages.props @ericksonlopezf
+
+# Documentation
+docs/ @ericksonlopezf
+*.md @ericksonlopezf

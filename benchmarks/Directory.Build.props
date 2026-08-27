@@ -1,0 +1,10 @@
+<Project>
+  <!-- Copyright © Erickson Lopez. MIT License. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <SonarQubeExclude>true</SonarQubeExclude>
+  </PropertyGroup>
+</Project>

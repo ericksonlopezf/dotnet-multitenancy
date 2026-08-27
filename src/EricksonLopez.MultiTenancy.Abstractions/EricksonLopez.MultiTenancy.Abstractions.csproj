@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <Description>Foundation contracts and primitives for multi-tenant SaaS architecture in .NET 8.0 and .NET 9.0. Contractually relies on EricksonLopez.Result for domain/infrastructure error modeling.</Description>
+    <PackageTags>$(CommonPackageTags);abstractions;contracts;interfaces;primitives;strongly-typed-id;native-aot</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EricksonLopez.Result" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All" />
+  </ItemGroup>
+</Project>

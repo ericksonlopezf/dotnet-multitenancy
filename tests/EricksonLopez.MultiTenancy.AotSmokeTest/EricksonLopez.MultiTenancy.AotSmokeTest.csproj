@@ -1,0 +1,23 @@
+<!-- Copyright © Erickson Lopez. MIT License. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EricksonLopez.MultiTenancy.AotSmokeTest</RootNamespace>
+    <AssemblyName>EricksonLopez.MultiTenancy.AotSmokeTest</AssemblyName>
+    <PublishAot>true</PublishAot>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+    <SonarQubeExclude>true</SonarQubeExclude>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\EricksonLopez.MultiTenancy.Abstractions\EricksonLopez.MultiTenancy.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.MultiTenancy\EricksonLopez.MultiTenancy.csproj" />
+    <ProjectReference Include="..\..\src\EricksonLopez.MultiTenancy.Testing\EricksonLopez.MultiTenancy.Testing.csproj" />
+  </ItemGroup>
+
+</Project>

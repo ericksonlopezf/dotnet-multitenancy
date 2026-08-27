@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <Description>Microsoft SQL Server Row-Level Security (RLS) and SESSION_CONTEXT integration for EricksonLopez.MultiTenancy. Provides session-context and transaction-scoped tenant isolation via sp_set_session_context.</Description>
+    <PackageTags>$(CommonPackageTags);sqlserver;mssql;session-context;row-level-security;database-isolation;dapper;sql</PackageTags>
+    <!-- Microsoft.Data.SqlClient 5.x has partial NativeAOT support. SNI and some authentication flows are not fully AOT-safe. -->
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <NoWarn>$(NoWarn);IL2026;IL3050;IL2091</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="Dapper" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EricksonLopez.MultiTenancy.Abstractions\EricksonLopez.MultiTenancy.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

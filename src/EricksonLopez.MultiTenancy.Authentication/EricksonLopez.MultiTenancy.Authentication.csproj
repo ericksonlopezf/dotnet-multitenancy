@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EricksonLopez.MultiTenancy.AspNetCore\EricksonLopez.MultiTenancy.AspNetCore.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <Description>ASP.NET Core authentication and cookie security integration for multi-tenant applications, preventing cross-tenant cookie hijacking and tenant hopping.</Description>
+    <PackageTags>$(CommonPackageTags);authentication;aspnetcore;security;claims;cookies;identity;native-aot</PackageTags>
+  </PropertyGroup>
+
+</Project>

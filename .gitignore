@@ -1,0 +1,64 @@
+# .NET
+bin/
+obj/
+
+# Backup files
+*.bak
+
+# Strong Name Keys
+# *.snk (Allowed for Open Source projects)
+# Allow the public-key-only file (safe to commit — contains NO private key)
+!public.snk
+
+# NuGet packages
+nupkgs/
+*.nupkg
+*.snupkg
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Visual Studio / Rider
+.vs/
+*.user
+*.suo
+.idea/
+*.DotSettings.user
+
+# Test & Analysis artifacts
+[Tt]est[Rr]esults*/
+[Cc]overage[Rr]eport*/
+coverage-report/
+coveragereport/
+*.trx
+*.coverage
+*.coveragexml
+*.cobertura.xml
+*.opencover.xml
+coverage.*/
+**/coverage.*.xml
+**/coverage.*.cobertura.xml
+**/coverage.*.opencover.xml
+BenchmarkDotNet.Artifacts/
+benchmarks/results/*.log
+StrykerOutput/
+
+# Secrets & Local Config
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Documentation & Generated Artifacts
+docs/*.html
+*.binlog
+aot-output/

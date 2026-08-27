@@ -1,0 +1,77 @@
+<Project>
+  <!-- Copyright © Erickson Lopez. MIT License. -->
+
+  <PropertyGroup>
+    <!-- Versioning — bump this single file for all packages.
+         This is the AUTHORITATIVE source of truth for the version number.
+         Update any documentation to match this value whenever VersionPrefix changes. -->
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionSuffix></VersionSuffix>
+
+    <!-- NuGet package metadata -->
+    <Authors>Erickson Lopez</Authors>
+    <Company>EricksonLopez</Company>
+    <Copyright>Copyright © Erickson Lopez. MIT License.</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://ericksonlopez.dev/multitenancy</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ericksonlopezf/dotnet-multitenancy</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <CommonPackageTags>dotnet;csharp;multitenancy;multi-tenancy;saas;tenant;tenant-isolation;rls;row-level-security;dapper</CommonPackageTags>
+    <PackageTags>$(CommonPackageTags)</PackageTags>
+
+    <!-- Build settings -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningLevel>5</WarningLevel>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile Condition="$(MSBuildProjectDirectory.Contains('src'))">true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);NU1903;NU1902;NU1901;NU1904;CA1716;CA1000;CA1510;CS0419;RS0016;RS0017;RS0026</NoWarn>
+
+    <!-- Strong Naming -->
+    <SignAssembly Condition="Exists('$(MSBuildThisFileDirectory)EricksonLopez.MultiTenancy.snk')">true</SignAssembly>
+    <AssemblyOriginatorKeyFile Condition="Exists('$(MSBuildThisFileDirectory)EricksonLopez.MultiTenancy.snk')">$(MSBuildThisFileDirectory)EricksonLopez.MultiTenancy.snk</AssemblyOriginatorKeyFile>
+    <PublicKey Condition="'$(SignAssembly)' == 'true'">002400000480000094000000060200000024000052534131000400000100010049a0b724bbec6319927f0b2db4ebe25419122ff56e798388f74284e72d0a9cec321c736a83506073d826e75eee7acc71177469726fccab8bba2cecadc9ce634c9858f67548e79f4b1b71bd498c2f167b5e0c5e3bc23f55d0dbbf9c935afb08644f27089e94de106576580d800964c63918703405aec1caaf29724d17df8677dd</PublicKey>
+    <DefineConstants Condition="'$(SignAssembly)' == 'true'">$(DefineConstants);SIGN_ASSEMBLY</DefineConstants>
+
+    <!-- Deterministic builds (important for NuGet reproducibility) -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <IsAotCompatible Condition="'$(IsAotCompatible)' == ''">true</IsAotCompatible>
+    <EnableTrimAnalyzer Condition="'$(EnableTrimAnalyzer)' == ''">true</EnableTrimAnalyzer>
+
+    <!-- SourceLink and Symbol Packaging -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- Security -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Visible="false" Condition="Exists('$(MSBuildThisFileDirectory)icon.png')" />
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" Condition="Exists('$(MSBuildThisFileDirectory)README.md')" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(CollectCoverage)' == 'true' or '$(DisableOptimization)' == 'true'">
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+</Project>

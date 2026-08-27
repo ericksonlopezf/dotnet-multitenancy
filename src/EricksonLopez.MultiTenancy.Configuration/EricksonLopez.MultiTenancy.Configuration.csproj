@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\EricksonLopez.MultiTenancy.Abstractions\EricksonLopez.MultiTenancy.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <Description>Microsoft.Extensions.Configuration and Options integration for EricksonLopez.MultiTenancy, enabling dynamic tenant configuration loading from appsettings and configuration providers.</Description>
+    <PackageTags>$(CommonPackageTags);configuration;options;appsettings;tenant-store;native-aot</PackageTags>
+  </PropertyGroup>
+
+</Project>

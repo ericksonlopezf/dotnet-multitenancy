@@ -1,0 +1,7 @@
+#nullable enable
+EricksonLopez.MultiTenancy.DefaultTenantScopeFactory
+EricksonLopez.MultiTenancy.InMemoryTenantStore
+EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant>
+EricksonLopez.MultiTenancy.ScopedTenantContextAccessor
+EricksonLopez.MultiTenancy.ServiceCollectionExtensions
+EricksonLopez.MultiTenancy.TenantContext

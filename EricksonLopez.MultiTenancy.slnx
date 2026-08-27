@@ -1,0 +1,44 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EricksonLopez.MultiTenancy.Abstractions/EricksonLopez.MultiTenancy.Abstractions.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy/EricksonLopez.MultiTenancy.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.AspNetCore/EricksonLopez.MultiTenancy.AspNetCore.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.PostgreSql/EricksonLopez.MultiTenancy.PostgreSql.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.SqlServer/EricksonLopez.MultiTenancy.SqlServer.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.MySql/EricksonLopez.MultiTenancy.MySql.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.MariaDb/EricksonLopez.MultiTenancy.MariaDb.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.Oracle/EricksonLopez.MultiTenancy.Oracle.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.Sqlite/EricksonLopez.MultiTenancy.Sqlite.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.Authentication/EricksonLopez.MultiTenancy.Authentication.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.Configuration/EricksonLopez.MultiTenancy.Configuration.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.Dapper/EricksonLopez.MultiTenancy.Dapper.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.Testing/EricksonLopez.MultiTenancy.Testing.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.OpenTelemetry/EricksonLopez.MultiTenancy.OpenTelemetry.csproj" />
+    <Project Path="src/EricksonLopez.MultiTenancy.Analyzers/EricksonLopez.MultiTenancy.Analyzers.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EricksonLopez.MultiTenancy.Abstractions.Tests/EricksonLopez.MultiTenancy.Abstractions.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.Tests/EricksonLopez.MultiTenancy.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.AspNetCore.Tests/EricksonLopez.MultiTenancy.AspNetCore.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.Authentication.Tests/EricksonLopez.MultiTenancy.Authentication.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.Configuration.Tests/EricksonLopez.MultiTenancy.Configuration.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.Dapper.Tests/EricksonLopez.MultiTenancy.Dapper.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.Testing.Tests/EricksonLopez.MultiTenancy.Testing.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.OpenTelemetry.Tests/EricksonLopez.MultiTenancy.OpenTelemetry.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.PostgreSql.Tests/EricksonLopez.MultiTenancy.PostgreSql.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.SqlServer.Tests/EricksonLopez.MultiTenancy.SqlServer.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.MySql.Tests/EricksonLopez.MultiTenancy.MySql.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.MariaDb.Tests/EricksonLopez.MultiTenancy.MariaDb.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.Oracle.Tests/EricksonLopez.MultiTenancy.Oracle.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.Sqlite.Tests/EricksonLopez.MultiTenancy.Sqlite.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.Analyzers.Tests/EricksonLopez.MultiTenancy.Analyzers.Tests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.ArchitectureTests/EricksonLopez.MultiTenancy.ArchitectureTests.csproj" />
+    <Project Path="tests/EricksonLopez.MultiTenancy.AotSmokeTest/EricksonLopez.MultiTenancy.AotSmokeTest.csproj" />
+  </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/EricksonLopez.MultiTenancy.Benchmarks/EricksonLopez.MultiTenancy.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/EricksonLopez.MultiTenancy.Showcase/EricksonLopez.MultiTenancy.Showcase.csproj" />
+  </Folder>
+</Solution>
