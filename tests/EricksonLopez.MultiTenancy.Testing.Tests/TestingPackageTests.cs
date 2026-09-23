@@ -70,6 +70,16 @@ public sealed class TestingPackageTests
         act.Should().Throw<TenantNotFoundException>();
     }
 
+    [Fact]
+    public void TestTenantContext_TenantInactive_RequiredTenantThrowsTenantInactiveException()
+    {
+        var tenant = new TenantInfo(ExpectedTenantId, "InactiveTenant", isActive: false);
+        var context = new TestTenantContext(tenant);
+
+        var act = () => _ = context.RequiredTenant;
+        act.Should().Throw<TenantInactiveException>();
+    }
+
     [Theory]
     [InlineData("Acme Corp")]
     [InlineData("Default Tenant")]

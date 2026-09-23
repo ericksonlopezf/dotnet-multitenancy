@@ -3,6 +3,9 @@
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 When implementing PostgreSQL Row Level Security (RLS) integration, a mechanism must be chosen to bind the current application tenant context to a session variable that the PostgreSQL policies can evaluate (e.g. `current_setting('app.current_tenant_id')`).
 

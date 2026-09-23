@@ -43,24 +43,32 @@ public static class OracleVpdExtensions
     /// Establishes the tenant context in Oracle using <c>DBMS_SESSION.SET_IDENTIFIER</c> and <c>ClientId</c>.
     /// </summary>
     /// <param name="connection">The open database connection.</param>
+    /// <param name="transaction">The active Oracle transaction.</param>
     /// <param name="tenantContext">The resolved tenant context containing the tenant identifier.</param>
-    /// <param name="transaction">The optional active Oracle transaction.</param>
     /// <param name="setClientIdProperty">
     /// If <see langword="true"/>, also assigns <c>ClientId</c> on the connection object (default: <see langword="true"/>).
     /// </param>
     /// <param name="cancellationToken">A token that can be used to cancel the asynchronous operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="connection"/> or <paramref name="tenantContext"/> is <see langword="null"/></exception>
+    /// <exception cref="InvalidOperationException"><paramref name="transaction"/> is <see langword="null"/></exception>
     /// <exception cref="TenantNotFoundException">No tenant has been resolved in the current context or the tenant identifier is empty</exception>
     public static Task SetTenantVpdContextAsync(
         this DbConnection connection,
+        DbTransaction transaction,
         ITenantContext tenantContext,
-        DbTransaction? transaction = null,
         bool setClientIdProperty = true,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(tenantContext);
+
+        if (transaction is null)
+        {
+            throw new InvalidOperationException(
+                "Setting Oracle VPD context requires an active transaction to prevent context leakage across connection pool reuse. " +
+                "Call BeginTenantTransactionAsync() or BeginTransactionAsync() before calling SetTenantVpdContextAsync().");
+        }
 
         var tenant = tenantContext.RequiredTenant;
         var tenantIdValue = tenant.Id.Value;
@@ -74,15 +82,22 @@ public static class OracleVpdExtensions
 
         if (setClientIdProperty)
         {
-#pragma warning disable IL2075
-            // Stryker disable once String
-            var property = connection.GetType().GetProperty("ClientId");
-            // Stryker disable once Logical
-            if (property != null && property.CanWrite)
+            if (connection is global::Oracle.ManagedDataAccess.Client.OracleConnection oracleConn)
             {
-                property.SetValue(connection, tenantIdStr);
+                oracleConn.ClientId = tenantIdStr;
             }
+            else
+            {
+#pragma warning disable IL2075
+                // Stryker disable once String
+                var property = connection.GetType().GetProperty("ClientId");
+                // Stryker disable once Logical
+                if (property != null && property.CanWrite)
+                {
+                    property.SetValue(connection, tenantIdStr);
+                }
 #pragma warning restore IL2075
+            }
         }
 
         const string sql = "BEGIN DBMS_SESSION.SET_IDENTIFIER(:tenantId); END;";
@@ -136,6 +151,37 @@ public static class OracleVpdExtensions
     }
 
     /// <summary>
+    /// Synchronously resets the tenant Oracle VPD context and clears the client identifier session state.
+    /// </summary>
+    /// <param name="connection">The open database connection.</param>
+    /// <param name="transaction">The optional active Oracle transaction.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="connection"/> is <see langword="null"/></exception>
+    public static void ResetTenantVpdContext(
+        this DbConnection connection,
+        DbTransaction? transaction = null)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+
+#pragma warning disable IL2075
+        // Stryker disable once String
+        var property = connection.GetType().GetProperty("ClientId");
+        // Stryker disable once Logical
+        if (property != null && property.CanWrite)
+        {
+            property.SetValue(connection, string.Empty);
+        }
+#pragma warning restore IL2075
+
+        const string sql = "BEGIN DBMS_SESSION.CLEAR_IDENTIFIER; END;";
+
+        var command = new CommandDefinition(
+            sql,
+            transaction: transaction);
+
+        connection.Execute(command);
+    }
+
+    /// <summary>
     /// Opens a new transaction on the provided Oracle connection and sets the tenant VPD context atomically.
     /// </summary>
     /// <param name="connection">The database connection (opened automatically if not already open).</param>
@@ -162,20 +208,35 @@ public static class OracleVpdExtensions
         }
 
         // Stryker disable once boolean
-        var transaction = await connection.BeginTransactionAsync(isolationLevel, cancellationToken).ConfigureAwait(false);
+        var rawTransaction = await connection.BeginTransactionAsync(isolationLevel, cancellationToken).ConfigureAwait(false);
+        var transaction = new OracleTenantSessionTransaction(
+            rawTransaction,
+            connection,
+            conn => conn.ResetTenantVpdContextAsync(cancellationToken: cancellationToken),
+            conn => conn.ResetTenantVpdContext());
 
         try
         {
             // Stryker disable once boolean
-            await connection.SetTenantVpdContextAsync(tenantContext, transaction, setClientIdProperty, cancellationToken)
+            await connection.SetTenantVpdContextAsync(transaction, tenantContext, setClientIdProperty, cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch
+        catch (Exception)
         {
-            // Stryker disable once boolean
-            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
-            // Stryker disable once boolean
-            await transaction.DisposeAsync().ConfigureAwait(false);
+            try
+            {
+                // Stryker disable once boolean
+                await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // Ignore rollback exceptions if the connection is already dead
+            }
+            finally
+            {
+                // Stryker disable once boolean
+                await transaction.DisposeAsync().ConfigureAwait(false);
+            }
             throw;
         }
 

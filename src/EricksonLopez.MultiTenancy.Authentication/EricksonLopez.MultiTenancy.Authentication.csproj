@@ -11,7 +11,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Description>ASP.NET Core authentication and cookie security integration for multi-tenant applications, preventing cross-tenant cookie hijacking and tenant hopping.</Description>
-    <PackageTags>$(CommonPackageTags);authentication;aspnetcore;security;claims;cookies;identity;native-aot</PackageTags>
+    <PackageTags>$(CommonPackageTags);authentication;aspnetcore;security;cookies;claims;identity;cookie-security;native-aot</PackageTags>
   </PropertyGroup>
 
 </Project>

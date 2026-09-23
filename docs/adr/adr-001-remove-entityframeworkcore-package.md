@@ -3,6 +3,9 @@
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 The `EricksonLopez.MultiTenancy` ecosystem targets Dapper, raw SQL, and PostgreSQL. A `MultiTenantDbContext` was added that wraps Entity Framework Core with automatic global query filters and automatic `TenantId` stamping on `SaveChanges`.
 
@@ -16,6 +19,9 @@ This package:
 
 ## Decision
 The `EricksonLopez.MultiTenancy.EntityFrameworkCore` project is permanently removed from the solution, the solution file, and the repository.
+
+### Target Frameworks & Runtime Compatibility
+Production libraries explicitly target `.NET 8.0 (LTS)` and `.NET 9.0` via `<TargetFrameworks>net8.0;net9.0</TargetFrameworks>`, with validated full compatibility for `.NET 10.0 Native AOT` compilation.
 
 ## Why
 1. **Wrong stack:** The ecosystem uses Dapper + SQL. EF Core is not in the target.

@@ -12,7 +12,7 @@ namespace EricksonLopez.MultiTenancy.Stores;
 public static class CachedTenantStoreExtensions
 {
     /// <summary>
-    /// Decorates the registered <see cref="ITenantStore{TTenant}"/> with a memory cache.
+    /// Decorates the registered <see cref="ITenantStore{TTenant}"/> and <see cref="ITenantLookupStore{TTenant}"/> with a memory cache.
     /// </summary>
     /// <remarks>
     /// Requires memory caching to be registered in the service collection.
@@ -53,6 +53,24 @@ public static class CachedTenantStoreExtensions
                 return (ITenantStore<TTenant>)objectFactory(provider, [innerInstance]);
             },
             descriptor.Lifetime));
+
+        var lookupDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ITenantLookupStore<TTenant>));
+        if (lookupDescriptor is not null)
+        {
+            services.Replace(ServiceDescriptor.Describe(
+                typeof(ITenantLookupStore<TTenant>),
+                provider => (ITenantLookupStore<TTenant>)provider.GetRequiredService<ITenantStore<TTenant>>(),
+                descriptor.Lifetime));
+        }
+
+        var untypedLookupDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ITenantLookupStore));
+        if (untypedLookupDescriptor is not null)
+        {
+            services.Replace(ServiceDescriptor.Describe(
+                typeof(ITenantLookupStore),
+                provider => (ITenantLookupStore)provider.GetRequiredService<ITenantStore<TTenant>>(),
+                descriptor.Lifetime));
+        }
 
         return services;
     }

@@ -6,7 +6,7 @@ Thank you for your interest in contributing to `EricksonLopez.MultiTenancy`. Thi
 
 ## 1. Prerequisites
 
-- **.NET SDK:** .NET 9.0 SDK or newer (source packages target `net8.0` and `net9.0`; analyzers target `netstandard2.0`).
+- **.NET SDK:** .NET 9.0 SDK or .NET 10.0 SDK (production libraries target `net8.0` and `net9.0`; analyzers target `netstandard2.0`; CI and Native AOT smoke testing run under `net10.0`).
 - **Node.js:** Node.js 18+ (required for running mutation quality gate verification scripts).
 - **IDE:** Visual Studio 2022 (v17.12+), JetBrains Rider 2024.3+, or VS Code with the C# Dev Kit.
 - **Git:** Git 2.40+ configured with signing keys (recommended).

@@ -1,5 +1,5 @@
 # Copyright © Erickson Lopez. MIT License.
-$targetHeader = "// Copyright © Erickson Lopez. MIT License."
+$targetHeader = "// Copyright " + [char]0x00A9 + " Erickson Lopez. MIT License."
 $modifiedCount = 0
 $checkedCount = 0
 

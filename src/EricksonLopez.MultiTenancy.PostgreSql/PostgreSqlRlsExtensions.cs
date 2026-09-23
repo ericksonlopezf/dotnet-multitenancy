@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
@@ -36,12 +37,17 @@ namespace EricksonLopez.MultiTenancy.PostgreSql;
 /// configured at the database level. This class is one layer of the defense-in-depth model.
 /// </para>
 /// </remarks>
-public static class PostgreSqlRlsExtensions
+public static partial class PostgreSqlRlsExtensions
 {
+    [GeneratedRegex(@"^[a-zA-Z0-9_.]+$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex SafeIdentifierRegex();
+
     /// <summary>
-    /// The PostgreSQL session configuration variable name used to set the current tenant.
-    /// Must match the variable name referenced in your RLS policies.
+    /// Specifies the default PostgreSQL session configuration variable name used to set the current tenant.
     /// </summary>
+    /// <remarks>
+    /// Must match the variable name referenced in your RLS policies.
+    /// </remarks>
     public const string DefaultTenantSessionVariable = "app.current_tenant_id";
 
     /// <summary>
@@ -85,6 +91,11 @@ public static class PostgreSqlRlsExtensions
             throw new ArgumentException("Session variable name must not be null or whitespace.", nameof(sessionVariable));
         }
 
+        if (!SafeIdentifierRegex().IsMatch(sessionVariable))
+        {
+            throw new ArgumentException($"Session variable name must be alphanumeric. Received: '{sessionVariable}'.", nameof(sessionVariable));
+        }
+
         var tenant = tenantContext.RequiredTenant;
 
         if (tenant.Id.Value == Guid.Empty)
@@ -111,6 +122,21 @@ public static class PostgreSqlRlsExtensions
             cancellationToken: cancellationToken);
 
         return connection.ExecuteAsync(commandDefinition);
+    }
+
+    /// <summary>
+    /// Establishes the tenant context for Row Level Security on an open NpgsqlConnection within the provided transaction.
+    /// Provides strongly-typed NpgsqlConnection support to eliminate ambiguity when multiple database provider packages are referenced.
+    /// </summary>
+    [ExcludeFromCodeCoverage(Justification = "Requires physical PostgreSQL connection for NpgsqlConnection typed operations")]
+    public static Task SetTenantRlsContextAsync(
+        this Npgsql.NpgsqlConnection connection,
+        Npgsql.NpgsqlTransaction transaction,
+        ITenantContext tenantContext,
+        string sessionVariable = DefaultTenantSessionVariable,
+        CancellationToken cancellationToken = default)
+    {
+        return ((DbConnection)connection).SetTenantRlsContextAsync(transaction, tenantContext, sessionVariable, cancellationToken);
     }
 
     /// <summary>
@@ -148,16 +174,48 @@ public static class PostgreSqlRlsExtensions
             await connection.SetTenantRlsContextAsync(transaction, tenantContext, sessionVariable, cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch
+        catch (Exception)
         {
             // If SET LOCAL fails, roll back and rethrow — don't leave a transaction open without RLS context
-            // Stryker disable once boolean
-            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
-            // Stryker disable once boolean
-            await transaction.DisposeAsync().ConfigureAwait(false);
+            try
+            {
+                // Stryker disable once boolean
+                await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // Ignore rollback exceptions if the connection is already dead, preserving the original exception
+            }
+            finally
+            {
+                // Stryker disable once boolean
+                await transaction.DisposeAsync().ConfigureAwait(false);
+            }
             throw;
         }
 
         return transaction;
+    }
+
+    /// <summary>
+    /// Opens a new transaction on the provided PostgreSQL connection and sets the tenant RLS context atomically.
+    /// Provides strongly-typed NpgsqlConnection support to eliminate ambiguity when multiple database provider packages are referenced.
+    /// </summary>
+    /// <param name="connection">The Npgsql database connection (opened automatically if not already open).</param>
+    /// <param name="tenantContext">The resolved tenant context.</param>
+    /// <param name="isolationLevel">The transaction isolation level (default: <see cref="IsolationLevel.ReadCommitted"/>).</param>
+    /// <param name="sessionVariable">The PostgreSQL session variable name for RLS.</param>
+    /// <param name="cancellationToken">A token that can be used to cancel the asynchronous operation.</param>
+    /// <returns>A task representing the asynchronous operation. The task result contains the started transaction with RLS context applied.</returns>
+    [ExcludeFromCodeCoverage(Justification = "Requires physical PostgreSQL connection for NpgsqlConnection typed operations")]
+    public static async Task<Npgsql.NpgsqlTransaction> BeginTenantTransactionAsync(
+        this Npgsql.NpgsqlConnection connection,
+        ITenantContext tenantContext,
+        IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
+        string sessionVariable = DefaultTenantSessionVariable,
+        CancellationToken cancellationToken = default)
+    {
+        var tx = await ((DbConnection)connection).BeginTenantTransactionAsync(tenantContext, isolationLevel, sessionVariable, cancellationToken).ConfigureAwait(false);
+        return (Npgsql.NpgsqlTransaction)tx;
     }
 }

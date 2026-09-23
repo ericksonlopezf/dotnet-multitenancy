@@ -12,7 +12,7 @@ namespace EricksonLopez.MultiTenancy.Analyzers;
 public sealed class TenantContextInSingletonAnalyzer : DiagnosticAnalyzer
 {
     /// <summary>
-    /// The diagnostic identifier for ELMT002.
+    /// Defines the diagnostic identifier for ELMT002.
     /// </summary>
     public const string DiagnosticId = "ELMT002";
 
@@ -49,7 +49,10 @@ public sealed class TenantContextInSingletonAnalyzer : DiagnosticAnalyzer
         var typeName = namedType.Name;
         bool isLikelySingleton = typeName.EndsWith("Singleton", System.StringComparison.OrdinalIgnoreCase)
             || typeName.EndsWith("Cache", System.StringComparison.OrdinalIgnoreCase)
-            || typeName.EndsWith("MemoryStore", System.StringComparison.OrdinalIgnoreCase);
+            || typeName.EndsWith("MemoryStore", System.StringComparison.OrdinalIgnoreCase)
+            || typeName.EndsWith("HostedService", System.StringComparison.OrdinalIgnoreCase)
+            || typeName.EndsWith("BackgroundService", System.StringComparison.OrdinalIgnoreCase)
+            || typeName.EndsWith("Worker", System.StringComparison.OrdinalIgnoreCase);
 
         if (!isLikelySingleton)
         {
@@ -58,7 +61,7 @@ public sealed class TenantContextInSingletonAnalyzer : DiagnosticAnalyzer
 
         foreach (var member in namedType.GetMembers())
         {
-            if (member is IFieldSymbol field && !field.IsStatic)
+            if (member is IFieldSymbol field && !field.IsStatic && !field.IsImplicitlyDeclared)
             {
                 var fieldTypeName = field.Type.ToDisplayString();
                 if (IsTenantContextType(fieldTypeName))
@@ -72,12 +75,29 @@ public sealed class TenantContextInSingletonAnalyzer : DiagnosticAnalyzer
                     context.ReportDiagnostic(diagnostic);
                 }
             }
+            else if (member is IPropertySymbol property && !property.IsStatic)
+            {
+                var propTypeName = property.Type.ToDisplayString();
+                if (IsTenantContextType(propTypeName))
+                {
+                    var diagnostic = Diagnostic.Create(
+                        _rule,
+                        property.Locations[0],
+                        namedType.Name,
+                        property.Type.Name);
+
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
         }
     }
 
     private static bool IsTenantContextType(string typeName)
     {
-        return typeName.Contains("TenantContext")
+        return (typeName.Contains("TenantContext") ||
+                typeName.Contains("ITenantInfo") ||
+                typeName.Contains("TenantInfo") ||
+                typeName.Contains("TenantId"))
             && !typeName.Contains("TenantContextBuilder")
             && !typeName.Contains("TestTenantContext");
     }

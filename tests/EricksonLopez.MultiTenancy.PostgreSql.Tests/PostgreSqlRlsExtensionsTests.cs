@@ -1,6 +1,7 @@
 // Copyright © Erickson Lopez. MIT License.
 using System;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -63,6 +64,18 @@ public class PostgreSqlRlsExtensionsTests
         var act = () => connection.SetTenantRlsContextAsync(transaction, context, sessionVariable: "   ");
         (await act.Should().ThrowAsync<ArgumentException>().WithParameterName("sessionVariable"))
             .WithMessage("Session variable name must not be null or whitespace. (Parameter 'sessionVariable')");
+    }
+
+    [Fact]
+    public async Task SetTenantRlsContextAsync_InvalidSessionVariable_ThrowsArgumentException()
+    {
+        var connection = new FakeDbConnection();
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
+        var context = CreateContext(ExpectedTenantId);
+
+        var act = () => connection.SetTenantRlsContextAsync(transaction, context, sessionVariable: "invalid var with space");
+        (await act.Should().ThrowAsync<ArgumentException>().WithParameterName("sessionVariable"))
+            .WithMessage("*Session variable name must be alphanumeric*");
     }
 
     [Fact]
@@ -183,11 +196,47 @@ public class PostgreSqlRlsExtensionsTests
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
+    [Fact]
+    public async Task BeginTenantTransactionAsync_WhenRollbackThrows_PreservesOriginalException()
+    {
+        var connection = new ThrowingRollbackConnection();
+        var context = CreateContext(TenantId.Empty);
+
+        var act = () => connection.BeginTenantTransactionAsync(context);
+        await act.Should().ThrowAsync<TenantNotFoundException>();
+    }
+
     private static ITenantContext CreateContext(TenantId id)
     {
         var tenantInfo = new TenantInfo(id, "PgTenant");
         var context = Substitute.For<ITenantContext>();
         context.RequiredTenant.Returns(tenantInfo);
         return context;
+    }
+
+    private sealed class ThrowingRollbackConnection : FakeDbConnection
+    {
+        protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
+        {
+            var tx = new ThrowingRollbackTransaction(this, isolationLevel);
+            Transactions.Add(tx);
+            return tx;
+        }
+
+        protected override ValueTask<DbTransaction> BeginDbTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken)
+        {
+            var tx = new ThrowingRollbackTransaction(this, isolationLevel);
+            Transactions.Add(tx);
+            return new(tx);
+        }
+    }
+
+    private sealed class ThrowingRollbackTransaction : FakeDbTransaction
+    {
+        public ThrowingRollbackTransaction(DbConnection connection, IsolationLevel isolationLevel)
+            : base(connection, isolationLevel) { }
+
+        public override Task RollbackAsync(CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("Simulated socket teardown error during rollback.");
     }
 }

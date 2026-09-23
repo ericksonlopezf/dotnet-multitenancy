@@ -332,4 +332,92 @@ public class HttpResolutionStrategiesTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Value.Should().Be(AlphaGuid);
     }
+
+    // ─────────────────────────────────────────────────────────
+    // InternalGatewayHeaderTenantResolutionStrategy
+    // ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public void InternalGatewayStrategy_NullAccessor_ThrowsArgumentNullException()
+    {
+        var act = () => new InternalGatewayHeaderTenantResolutionStrategy(null!, "secret-123");
+        act.Should().Throw<ArgumentNullException>().WithParameterName("httpContextAccessor");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void InternalGatewayStrategy_InvalidSecret_ThrowsArgumentException(string? secret)
+    {
+        var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        var act = () => new InternalGatewayHeaderTenantResolutionStrategy(httpContextAccessor, secret!);
+        act.Should().Throw<ArgumentException>().WithParameterName("expectedSharedSecret");
+    }
+
+    [Fact]
+    public async Task InternalGatewayStrategy_NullHttpContext_ReturnsFailure()
+    {
+        var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        httpContextAccessor.HttpContext.Returns((HttpContext?)null);
+
+        var strategy = new InternalGatewayHeaderTenantResolutionStrategy(httpContextAccessor, "gateway-token-xyz");
+        var result = await strategy.ResolveTenantIdAsync();
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Tenant.ResolutionFailed");
+        result.Error.Description.Should().Contain("HttpContext is unavailable");
+    }
+
+    [Fact]
+    public async Task InternalGatewayStrategy_MissingGatewaySecretHeader_ReturnsFailure()
+    {
+        var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Tenant-ID"] = AlphaGuidStr;
+        httpContextAccessor.HttpContext.Returns(httpContext);
+
+        var strategy = new InternalGatewayHeaderTenantResolutionStrategy(httpContextAccessor, "gateway-token-xyz");
+        var result = await strategy.ResolveTenantIdAsync();
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Tenant.ResolutionFailed");
+        result.Error.Description.Should().Contain("Gateway secret header 'X-Gateway-Secret' is missing or invalid");
+    }
+
+    [Fact]
+    public async Task InternalGatewayStrategy_InvalidGatewaySecretHeader_ReturnsFailure()
+    {
+        var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Tenant-ID"] = AlphaGuidStr;
+        httpContext.Request.Headers["X-Gateway-Secret"] = "wrong-secret";
+        httpContextAccessor.HttpContext.Returns(httpContext);
+
+        var strategy = new InternalGatewayHeaderTenantResolutionStrategy(httpContextAccessor, "gateway-token-xyz");
+        var result = await strategy.ResolveTenantIdAsync();
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Tenant.ResolutionFailed");
+        result.Error.Description.Should().Contain("Gateway secret header 'X-Gateway-Secret' is missing or invalid");
+    }
+
+    [Fact]
+    public async Task InternalGatewayStrategy_ValidSecret_ExtractsTenantId()
+    {
+        var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Tenant-ID"] = AlphaGuidStr;
+        httpContext.Request.Headers["X-Gateway-Secret"] = "gateway-token-xyz";
+        httpContextAccessor.HttpContext.Returns(httpContext);
+
+        var strategy = new InternalGatewayHeaderTenantResolutionStrategy(httpContextAccessor, "gateway-token-xyz");
+        strategy.StrategyName.Should().Be("InternalGatewayHeader");
+        strategy.Source.Should().Be(TenantResolutionSource.Header);
+
+        var result = await strategy.ResolveTenantIdAsync();
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Value.Should().Be(AlphaGuid);
+    }
 }

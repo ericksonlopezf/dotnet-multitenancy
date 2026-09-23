@@ -3,7 +3,6 @@ EricksonLopez.MultiTenancy.ITenantContext
 EricksonLopez.MultiTenancy.ITenantInfo
 EricksonLopez.MultiTenancy.ITenantLookupStore
 EricksonLopez.MultiTenancy.ITenantLookupStore<TTenant>
-EricksonLopez.MultiTenancy.ITenantResolver
 EricksonLopez.MultiTenancy.ITenantScope
 EricksonLopez.MultiTenancy.ITenantScopeFactory
 EricksonLopez.MultiTenancy.ITenantStore

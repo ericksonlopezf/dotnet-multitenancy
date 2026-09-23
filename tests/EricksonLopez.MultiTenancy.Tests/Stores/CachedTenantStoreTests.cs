@@ -82,17 +82,42 @@ public class CachedTenantStoreTests
     }
 
     [Fact]
-    public async Task GetTenantAsync_InnerStoreFails_DoesNotCache()
+    public async Task GetTenantAsync_InnerStoreFails_WithNegativeCachingDisabled_DoesNotCache()
     {
+        var options = Microsoft.Extensions.Options.Options.Create(new CachedTenantStoreOptions
+        {
+            EnableNegativeCaching = false
+        });
+        var store = new CachedTenantStore<TenantInfo>(_innerStore, _cache, options);
+
         var error = TenantErrors.NotFound(TestId);
         _innerStore.GetTenantAsync(TestId, default).Returns(Result<TenantInfo>.Failure(error));
 
-        var result = await _cachedStore.GetTenantAsync(TestId);
+        var result = await store.GetTenantAsync(TestId);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(error);
 
         _cache.TryGetValue($"TenantStore_Id_{TestId.Value:N}", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetTenantAsync_InnerStoreFails_WithNegativeCachingEnabled_CachesFailureAndPreventsStampede()
+    {
+        var error = TenantErrors.NotFound(TestId);
+        _innerStore.GetTenantAsync(TestId, default).Returns(Result<TenantInfo>.Failure(error));
+
+        var result1 = await _cachedStore.GetTenantAsync(TestId);
+
+        result1.IsFailure.Should().BeTrue();
+        result1.Error.Should().Be(error);
+
+        // Subsequent lookup should be served from negative cache without hitting innerStore again
+        var result2 = await _cachedStore.GetTenantAsync(TestId);
+        result2.IsFailure.Should().BeTrue();
+        result2.Error.Should().Be(error);
+
+        await _innerStore.Received(1).GetTenantAsync(TestId, default);
     }
 
     [Fact]
@@ -163,6 +188,220 @@ public class CachedTenantStoreTests
         mockEntry.AbsoluteExpirationRelativeToNow.Should().Be(TimeSpan.FromMinutes(42));
         mockEntry.SlidingExpiration.Should().Be(TimeSpan.FromMinutes(17));
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task GetTenantByIdentifierAsync_NullOrWhitespace_ReturnsInvalidId(string? identifier)
+    {
+        var result = await _cachedStore.GetTenantByIdentifierAsync(identifier!);
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Tenant.InvalidId");
+    }
+
+    [Fact]
+    public async Task GetTenantByIdentifierAsync_InnerStoreNotLookupStore_ReturnsStrategyFailed()
+    {
+        // _innerStore only implements ITenantStore<TenantInfo>, not ITenantLookupStore<TenantInfo>
+        var result = await _cachedStore.GetTenantByIdentifierAsync("acme");
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Tenant.ResolutionFailed");
+    }
+
+    [Fact]
+    public async Task GetTenantByIdentifierAsync_CacheMiss_CallsInnerLookupStoreAndCaches()
+    {
+        var innerLookup = Substitute.For<ITenantStore<TenantInfo>, ITenantLookupStore<TenantInfo>>();
+        var store = new CachedTenantStore<TenantInfo>(innerLookup, _cache, _options);
+
+        ((ITenantLookupStore<TenantInfo>)innerLookup)
+            .GetTenantByIdentifierAsync("acme", Arg.Any<System.Threading.CancellationToken>())
+            .Returns(Result<TenantInfo>.Success(_testTenant));
+
+        var result = await store.GetTenantByIdentifierAsync("acme");
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeSameAs(_testTenant);
+
+        // Check that it cached by identifier and by ID
+        _cache.TryGetValue("TenantStore_Ident_acme", out TenantInfo? cachedByIdent).Should().BeTrue();
+        cachedByIdent.Should().BeSameAs(_testTenant);
+
+        _cache.TryGetValue($"TenantStore_Id_{TestId.Value:N}", out TenantInfo? cachedById).Should().BeTrue();
+        cachedById.Should().BeSameAs(_testTenant);
+    }
+
+    [Fact]
+    public async Task GetTenantByIdentifierAsync_CacheHit_ReturnsFromCache()
+    {
+        var innerLookup = Substitute.For<ITenantStore<TenantInfo>, ITenantLookupStore<TenantInfo>>();
+        var store = new CachedTenantStore<TenantInfo>(innerLookup, _cache, _options);
+
+        _cache.Set("TenantStore_Ident_acme", _testTenant);
+
+        var result = await store.GetTenantByIdentifierAsync("acme");
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeSameAs(_testTenant);
+
+        await ((ITenantLookupStore<TenantInfo>)innerLookup)
+            .DidNotReceive()
+            .GetTenantByIdentifierAsync(Arg.Any<string>(), Arg.Any<System.Threading.CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetTenantByIdentifierAsync_NegativeCaching_CachesFailure()
+    {
+        var options = Microsoft.Extensions.Options.Options.Create(new CachedTenantStoreOptions
+        {
+            EnableNegativeCaching = true,
+            NegativeCacheExpirationRelativeToNow = TimeSpan.FromMinutes(1)
+        });
+
+        var innerLookup = Substitute.For<ITenantStore<TenantInfo>, ITenantLookupStore<TenantInfo>>();
+        var store = new CachedTenantStore<TenantInfo>(innerLookup, _cache, options);
+
+        var error = TenantErrors.NotFound(TestId);
+        ((ITenantLookupStore<TenantInfo>)innerLookup)
+            .GetTenantByIdentifierAsync("missing", Arg.Any<System.Threading.CancellationToken>())
+            .Returns(Result<TenantInfo>.Failure(error));
+
+        var result = await store.GetTenantByIdentifierAsync("missing");
+        result.IsFailure.Should().BeTrue();
+
+        // Second call should hit negative cache
+        var result2 = await store.GetTenantByIdentifierAsync("missing");
+        result2.IsFailure.Should().BeTrue();
+
+        await ((ITenantLookupStore<TenantInfo>)innerLookup)
+            .Received(1)
+            .GetTenantByIdentifierAsync("missing", Arg.Any<System.Threading.CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ITenantLookupStore_ExplicitInterface_DelegatesCorrectly()
+    {
+        var innerLookup = Substitute.For<ITenantStore<TenantInfo>, ITenantLookupStore<TenantInfo>>();
+        var store = new CachedTenantStore<TenantInfo>(innerLookup, _cache, _options);
+
+        ((ITenantLookupStore<TenantInfo>)innerLookup)
+            .GetTenantByIdentifierAsync("globex", Arg.Any<System.Threading.CancellationToken>())
+            .Returns(Result<TenantInfo>.Success(_testTenant));
+
+        ITenantLookupStore untyped = store;
+        var result = await untyped.GetTenantByIdentifierAsync("globex");
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Id.Should().Be(TestId);
+    }
+
+    [Fact]
+    public async Task ITenantLookupStore_ExplicitInterface_Failure_ReturnsFailure()
+    {
+        var innerLookup = Substitute.For<ITenantStore<TenantInfo>, ITenantLookupStore<TenantInfo>>();
+        var store = new CachedTenantStore<TenantInfo>(innerLookup, _cache, _options);
+
+        ((ITenantLookupStore<TenantInfo>)innerLookup)
+            .GetTenantByIdentifierAsync("missing", Arg.Any<System.Threading.CancellationToken>())
+            .Returns(Result<TenantInfo>.Failure(TenantErrors.NotFound(TestId)));
+
+        ITenantLookupStore untyped = store;
+        var result = await untyped.GetTenantByIdentifierAsync("missing");
+
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetTenantAsync_WhenCacheContainsResultDirectly_ReturnsResult()
+    {
+        var cacheKey = $"TenantStore_Id_{TestId.Value:N}";
+        _cache.Set(cacheKey, Result<TenantInfo>.Success(_testTenant));
+
+        var result = await _cachedStore.GetTenantAsync(TestId);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Id.Should().Be(TestId);
+    }
+
+    [Fact]
+    public void AddCachedTenantStore_RegistersAndResolvesTypedAndUntypedLookupStore()
+    {
+        var innerLookup = Substitute.For<ITenantStore<TenantInfo>, ITenantLookupStore<TenantInfo>, ITenantLookupStore>();
+        var services = new ServiceCollection();
+        services.AddMemoryCache();
+        services.AddSingleton<ITenantStore<TenantInfo>>(innerLookup);
+        services.AddSingleton<ITenantLookupStore<TenantInfo>>((ITenantLookupStore<TenantInfo>)innerLookup);
+        services.AddSingleton<ITenantLookupStore>((ITenantLookupStore)innerLookup);
+
+        services.AddCachedTenantStore<TenantInfo>();
+        var sp = services.BuildServiceProvider();
+
+        var typedLookup = sp.GetRequiredService<ITenantLookupStore<TenantInfo>>();
+        typedLookup.Should().NotBeNull();
+
+        var untypedLookup = sp.GetRequiredService<ITenantLookupStore>();
+        untypedLookup.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GetTenantAsync_ConcurrentRequests_SecondCallerHitsLockCacheCheck()
+    {
+        var tcsFirstStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tcsUnblock = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        _innerStore.GetTenantAsync(TestId, Arg.Any<System.Threading.CancellationToken>())
+            .Returns(async _ =>
+            {
+                tcsFirstStarted.SetResult(true);
+                await tcsUnblock.Task;
+                return Result<TenantInfo>.Success(_testTenant);
+            });
+
+        var task1 = Task.Run(() => _cachedStore.GetTenantAsync(TestId));
+        await tcsFirstStarted.Task;
+
+        var task2 = Task.Run(() => _cachedStore.GetTenantAsync(TestId));
+        await Task.Delay(50);
+        tcsUnblock.SetResult(true);
+
+        var results = await Task.WhenAll(task1, task2);
+        results[0].IsSuccess.Should().BeTrue();
+        results[1].IsSuccess.Should().BeTrue();
+        await _innerStore.Received(1).GetTenantAsync(TestId, Arg.Any<System.Threading.CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetTenantByIdentifierAsync_ConcurrentRequests_SecondCallerHitsLockCacheCheck()
+    {
+        var innerLookup = Substitute.For<ITenantStore<TenantInfo>, ITenantLookupStore<TenantInfo>>();
+        var store = new CachedTenantStore<TenantInfo>(innerLookup, _cache, _options);
+
+        var tcsFirstStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tcsUnblock = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        ((ITenantLookupStore<TenantInfo>)innerLookup)
+            .GetTenantByIdentifierAsync(TestIdentifier, Arg.Any<System.Threading.CancellationToken>())
+            .Returns(async _ =>
+            {
+                tcsFirstStarted.SetResult(true);
+                await tcsUnblock.Task;
+                return Result<TenantInfo>.Success(_testTenant);
+            });
+
+        var task1 = Task.Run(() => store.GetTenantByIdentifierAsync(TestIdentifier));
+        await tcsFirstStarted.Task;
+
+        var task2 = Task.Run(() => store.GetTenantByIdentifierAsync(TestIdentifier));
+        await Task.Delay(50);
+        tcsUnblock.SetResult(true);
+
+        var results = await Task.WhenAll(task1, task2);
+        results[0].IsSuccess.Should().BeTrue();
+        results[1].IsSuccess.Should().BeTrue();
+        await ((ITenantLookupStore<TenantInfo>)innerLookup).Received(1).GetTenantByIdentifierAsync(TestIdentifier, Arg.Any<System.Threading.CancellationToken>());
+    }
 }
+
 
 

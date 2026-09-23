@@ -59,7 +59,8 @@ builder.Services.AddScoped<GlobalReportingEngine>();
 await connection.QueryAsync<Invoice>("SELECT * FROM invoices WHERE id = @Id", new { Id = invoiceId });
 
 // ✅ GOOD: Querying with explicit tenant parameter injection
-var parameters = tenantContext.CreateTenantParameters(new { Id = invoiceId });
+var parameters = tenantContext.CreateTenantParameters();
+parameters.Add("Id", invoiceId);
 await connection.QueryAsync<Invoice>("SELECT * FROM invoices WHERE id = @Id AND tenant_id = @TenantId", parameters);
 ```
 

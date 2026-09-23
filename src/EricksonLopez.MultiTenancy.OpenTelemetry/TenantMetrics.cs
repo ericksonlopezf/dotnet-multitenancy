@@ -11,7 +11,7 @@ namespace EricksonLopez.MultiTenancy.OpenTelemetry;
 public static class TenantMetrics
 {
     /// <summary>
-    /// The canonical Meter name for EricksonLopez.MultiTenancy instrumentation.
+    /// Specifies the canonical Meter name for EricksonLopez.MultiTenancy instrumentation.
     /// </summary>
     /// <remarks>
     /// Register this meter with OpenTelemetry: <c>meterProviderBuilder.AddMeter(TenantMetrics.MeterName)</c>.
@@ -19,17 +19,17 @@ public static class TenantMetrics
     public const string MeterName = "EricksonLopez.MultiTenancy";
 
     /// <summary>
-    /// The canonical version string of the <see cref="Meter"/> instance.
+    /// Specifies the canonical version string of the <see cref="Meter"/> instance.
     /// </summary>
-    public const string MeterVersion = "1.0.0";
+    public const string MeterVersion = "2.0.0";
 
     /// <summary>
-    /// The canonical <see cref="Meter"/> instance for multi-tenancy telemetry instrumentation.
+    /// Gets the canonical <see cref="Meter"/> instance for multi-tenancy telemetry instrumentation.
     /// </summary>
     public static readonly Meter Meter = new(MeterName, MeterVersion);
 
     /// <summary>
-    /// Total count of tenant resolution attempts.
+    /// Defines the counter instrument for total tenant resolution attempts.
     /// </summary>
     public static readonly Counter<long> ResolutionTotal = Meter.CreateCounter<long>(
         "tenant.resolution.total",
@@ -37,7 +37,7 @@ public static class TenantMetrics
         description: "Total number of tenant resolution attempts.");
 
     /// <summary>
-    /// Total count of failed tenant resolution attempts.
+    /// Defines the counter instrument for failed tenant resolution attempts.
     /// </summary>
     public static readonly Counter<long> ResolutionFailures = Meter.CreateCounter<long>(
         "tenant.resolution.failures",
@@ -45,7 +45,7 @@ public static class TenantMetrics
         description: "Total number of tenant resolution failures.");
 
     /// <summary>
-    /// Total count of detected multi-tenant resolution conflicts.
+    /// Defines the counter instrument for detected multi-tenant resolution conflicts.
     /// </summary>
     public static readonly Counter<long> ResolutionConflicts = Meter.CreateCounter<long>(
         "tenant.resolution.conflicts",
@@ -53,7 +53,7 @@ public static class TenantMetrics
         description: "Total number of resolution conflicts detected across strategies.");
 
     /// <summary>
-    /// Duration of tenant resolution operations in milliseconds.
+    /// Defines the histogram instrument measuring the duration of tenant resolution operations in milliseconds.
     /// </summary>
     public static readonly Histogram<double> ResolutionDuration = Meter.CreateHistogram<double>(
         "tenant.resolution.duration",

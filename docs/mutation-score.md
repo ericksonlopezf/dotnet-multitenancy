@@ -1,12 +1,12 @@
 # Mutation Testing Score — EricksonLopez.MultiTenancy
 
-> **Last updated**: 2026-08-27 (v1.0.0)  
+> **Last updated**: 2026-09-23 (v2.0.0)  
 > **Tool**: Stryker.NET (`dotnet-stryker`)  
 > **CI Gate**: `mutation-testing.yml` — build exits non-zero when score < 95% (`break: 95`)
 
 ---
 
-## 1. Score Summary (v1.0.0)
+## 1. Score Summary (v2.0.0)
 
 | Package / Scope | Mutants Killed | Survived | Timeout | Mutation Score | Status |
 |:---|:---:|:---:|:---:|:---:|:---:|

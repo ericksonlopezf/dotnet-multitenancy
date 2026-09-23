@@ -1,1 +1,125 @@
 #nullable enable
+EricksonLopez.MultiTenancy.IBranchContext
+EricksonLopez.MultiTenancy.IBranchContext.AllBranchesAllowed.get -> bool
+EricksonLopez.MultiTenancy.IBranchContext.AllowedBranchIds.get -> System.Collections.Generic.IReadOnlyList<System.Guid>!
+EricksonLopez.MultiTenancy.IBranchContext.BranchId.get -> System.Guid?
+EricksonLopez.MultiTenancy.ICompanyContext
+EricksonLopez.MultiTenancy.ICompanyContext.CompanyId.get -> System.Guid?
+EricksonLopez.MultiTenancy.ICompanyContext.HasCompanyContext.get -> bool
+EricksonLopez.MultiTenancy.IOrganizationContext
+EricksonLopez.MultiTenancy.IPlatformAdminContext
+EricksonLopez.MultiTenancy.IPlatformAdminContext.AuditReason.get -> string?
+EricksonLopez.MultiTenancy.IPlatformAdminContext.IsPlatformAdmin.get -> bool
+EricksonLopez.MultiTenancy.ITenantContext.IsResolved.get -> bool
+EricksonLopez.MultiTenancy.ITenantContext.RequiredTenant.get -> EricksonLopez.MultiTenancy.ITenantInfo!
+EricksonLopez.MultiTenancy.ITenantContext.Source.get -> EricksonLopez.MultiTenancy.TenantResolutionSource
+EricksonLopez.MultiTenancy.ITenantContext.Tenant.get -> EricksonLopez.MultiTenancy.ITenantInfo?
+EricksonLopez.MultiTenancy.ITenantContext<TTenant>
+EricksonLopez.MultiTenancy.ITenantContext<TTenant>.Tenant.get -> TTenant?
+EricksonLopez.MultiTenancy.ITenantContextAccessor
+EricksonLopez.MultiTenancy.ITenantContextAccessor.TenantContext.get -> EricksonLopez.MultiTenancy.ITenantContext?
+EricksonLopez.MultiTenancy.ITenantContextAccessor.TenantContext.set -> void
+EricksonLopez.MultiTenancy.ITenantEntity
+EricksonLopez.MultiTenancy.ITenantEntity.TenantId.get -> EricksonLopez.MultiTenancy.TenantId
+EricksonLopez.MultiTenancy.ITenantInfo.ConnectionString.get -> string?
+EricksonLopez.MultiTenancy.ITenantInfo.Id.get -> EricksonLopez.MultiTenancy.TenantId
+EricksonLopez.MultiTenancy.ITenantInfo.IsActive.get -> bool
+EricksonLopez.MultiTenancy.ITenantInfo.Name.get -> string!
+EricksonLopez.MultiTenancy.ITenantInfo.Properties.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+EricksonLopez.MultiTenancy.ITenantLookupStore.GetTenantByIdentifierAsync(string! identifier, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EricksonLopez.Result.Result<EricksonLopez.MultiTenancy.ITenantInfo!>>!
+EricksonLopez.MultiTenancy.ITenantLookupStore<TTenant>.GetTenantByIdentifierAsync(string! identifier, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EricksonLopez.Result.Result<TTenant!>>!
+EricksonLopez.MultiTenancy.ITenantResolutionStrategy
+EricksonLopez.MultiTenancy.ITenantResolutionStrategy.ResolveTenantIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<EricksonLopez.Result.Result<EricksonLopez.MultiTenancy.TenantId>>
+EricksonLopez.MultiTenancy.ITenantResolutionStrategy.Source.get -> EricksonLopez.MultiTenancy.TenantResolutionSource
+EricksonLopez.MultiTenancy.ITenantResolutionStrategy.StrategyName.get -> string!
+EricksonLopez.MultiTenancy.ITenantScope.ServiceProvider.get -> System.IServiceProvider!
+EricksonLopez.MultiTenancy.ITenantScope.TenantContext.get -> EricksonLopez.MultiTenancy.ITenantContext!
+EricksonLopez.MultiTenancy.ITenantScopeFactory.CreateScope(EricksonLopez.MultiTenancy.ITenantInfo! tenant, EricksonLopez.MultiTenancy.TenantResolutionSource source = EricksonLopez.MultiTenancy.TenantResolutionSource.ExplicitScope) -> EricksonLopez.MultiTenancy.ITenantScope!
+EricksonLopez.MultiTenancy.ITenantStore.GetAllStreamAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<EricksonLopez.MultiTenancy.ITenantInfo!>!
+EricksonLopez.MultiTenancy.ITenantStore.GetTenantAsync(EricksonLopez.MultiTenancy.TenantId tenantId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EricksonLopez.Result.Result<EricksonLopez.MultiTenancy.ITenantInfo!>>!
+EricksonLopez.MultiTenancy.ITenantStore<TTenant>.GetAllStreamAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TTenant!>!
+EricksonLopez.MultiTenancy.ITenantStore<TTenant>.GetTenantAsync(EricksonLopez.MultiTenancy.TenantId tenantId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EricksonLopez.Result.Result<TTenant!>>!
+EricksonLopez.MultiTenancy.Serialization.TenantIdJsonConverter
+EricksonLopez.MultiTenancy.Serialization.TenantIdJsonConverter.TenantIdJsonConverter() -> void
+EricksonLopez.MultiTenancy.TenantId.CompareTo(EricksonLopez.MultiTenancy.TenantId other) -> int
+EricksonLopez.MultiTenancy.TenantId.CompareTo(object? obj) -> int
+EricksonLopez.MultiTenancy.TenantId.Equals(EricksonLopez.MultiTenancy.TenantId other) -> bool
+EricksonLopez.MultiTenancy.TenantId.IsEmpty.get -> bool
+EricksonLopez.MultiTenancy.TenantId.TenantId() -> void
+EricksonLopez.MultiTenancy.TenantId.TenantId(System.Guid value) -> void
+EricksonLopez.MultiTenancy.TenantId.Value.get -> System.Guid
+EricksonLopez.MultiTenancy.TenantInactiveException
+EricksonLopez.MultiTenancy.TenantInactiveException.TenantId.get -> EricksonLopez.MultiTenancy.TenantId
+EricksonLopez.MultiTenancy.TenantInactiveException.TenantInactiveException(EricksonLopez.MultiTenancy.TenantId tenantId) -> void
+EricksonLopez.MultiTenancy.TenantInactiveException.TenantInactiveException(EricksonLopez.MultiTenancy.TenantId tenantId, string! message) -> void
+EricksonLopez.MultiTenancy.TenantInfo.ConnectionString.get -> string?
+EricksonLopez.MultiTenancy.TenantInfo.ConnectionString.init -> void
+EricksonLopez.MultiTenancy.TenantInfo.Id.get -> EricksonLopez.MultiTenancy.TenantId
+EricksonLopez.MultiTenancy.TenantInfo.Id.init -> void
+EricksonLopez.MultiTenancy.TenantInfo.IsActive.get -> bool
+EricksonLopez.MultiTenancy.TenantInfo.IsActive.init -> void
+EricksonLopez.MultiTenancy.TenantInfo.Name.get -> string!
+EricksonLopez.MultiTenancy.TenantInfo.Name.init -> void
+EricksonLopez.MultiTenancy.TenantInfo.Properties.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+EricksonLopez.MultiTenancy.TenantInfo.Properties.init -> void
+EricksonLopez.MultiTenancy.TenantInfo.TenantInfo() -> void
+EricksonLopez.MultiTenancy.TenantInfo.TenantInfo(EricksonLopez.MultiTenancy.TenantId id, string! name, string? connectionString = null, bool isActive = true) -> void
+EricksonLopez.MultiTenancy.TenantInfo.TenantInfo(EricksonLopez.MultiTenancy.TenantInfo! original) -> void
+EricksonLopez.MultiTenancy.TenantNotFoundException.TenantNotFoundException() -> void
+EricksonLopez.MultiTenancy.TenantNotFoundException.TenantNotFoundException(string! message) -> void
+EricksonLopez.MultiTenancy.TenantNotFoundException.TenantNotFoundException(string! message, System.Exception! innerException) -> void
+EricksonLopez.MultiTenancy.TenantResolutionSource.BackgroundJob = 7 -> EricksonLopez.MultiTenancy.TenantResolutionSource
+EricksonLopez.MultiTenancy.TenantResolutionSource.ExplicitScope = 5 -> EricksonLopez.MultiTenancy.TenantResolutionSource
+EricksonLopez.MultiTenancy.TenantResolutionSource.Header = 4 -> EricksonLopez.MultiTenancy.TenantResolutionSource
+EricksonLopez.MultiTenancy.TenantResolutionSource.Host = 3 -> EricksonLopez.MultiTenancy.TenantResolutionSource
+EricksonLopez.MultiTenancy.TenantResolutionSource.JwtClaim = 1 -> EricksonLopez.MultiTenancy.TenantResolutionSource
+EricksonLopez.MultiTenancy.TenantResolutionSource.MessageMetadata = 8 -> EricksonLopez.MultiTenancy.TenantResolutionSource
+EricksonLopez.MultiTenancy.TenantResolutionSource.None = 0 -> EricksonLopez.MultiTenancy.TenantResolutionSource
+EricksonLopez.MultiTenancy.TenantResolutionSource.PlatformAdmin = 6 -> EricksonLopez.MultiTenancy.TenantResolutionSource
+EricksonLopez.MultiTenancy.TenantResolutionSource.Route = 2 -> EricksonLopez.MultiTenancy.TenantResolutionSource
+override EricksonLopez.MultiTenancy.Serialization.TenantIdJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> EricksonLopez.MultiTenancy.TenantId
+override EricksonLopez.MultiTenancy.Serialization.TenantIdJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, EricksonLopez.MultiTenancy.TenantId value, System.Text.Json.JsonSerializerOptions! options) -> void
+override EricksonLopez.MultiTenancy.TenantId.GetHashCode() -> int
+override EricksonLopez.MultiTenancy.TenantId.ToString() -> string!
+override EricksonLopez.MultiTenancy.TenantInfo.Equals(object? obj) -> bool
+override EricksonLopez.MultiTenancy.TenantInfo.GetHashCode() -> int
+override EricksonLopez.MultiTenancy.TenantInfo.ToString() -> string!
+static EricksonLopez.MultiTenancy.TenantErrors.Inactive(EricksonLopez.MultiTenancy.TenantId tenantId) -> EricksonLopez.Result.Error!
+static EricksonLopez.MultiTenancy.TenantErrors.InvalidId(string? value) -> EricksonLopez.Result.Error!
+static EricksonLopez.MultiTenancy.TenantErrors.NotFound(EricksonLopez.MultiTenancy.TenantId tenantId) -> EricksonLopez.Result.Error!
+static EricksonLopez.MultiTenancy.TenantErrors.StrategyFailed(string! strategyName, string? reason = null) -> EricksonLopez.Result.Error!
+static EricksonLopez.MultiTenancy.TenantId.Create(string! value) -> EricksonLopez.MultiTenancy.TenantId
+static EricksonLopez.MultiTenancy.TenantId.Create(System.Guid value) -> EricksonLopez.MultiTenancy.TenantId
+static EricksonLopez.MultiTenancy.TenantId.Create(System.ReadOnlySpan<char> value) -> EricksonLopez.MultiTenancy.TenantId
+static EricksonLopez.MultiTenancy.TenantId.explicit operator EricksonLopez.MultiTenancy.TenantId(System.Guid value) -> EricksonLopez.MultiTenancy.TenantId
+static EricksonLopez.MultiTenancy.TenantId.From(string? value) -> EricksonLopez.Result.Result<EricksonLopez.MultiTenancy.TenantId>
+static EricksonLopez.MultiTenancy.TenantId.From(System.Guid value) -> EricksonLopez.Result.Result<EricksonLopez.MultiTenancy.TenantId>
+static EricksonLopez.MultiTenancy.TenantId.From(System.ReadOnlySpan<char> value) -> EricksonLopez.Result.Result<EricksonLopez.MultiTenancy.TenantId>
+static EricksonLopez.MultiTenancy.TenantId.implicit operator System.Guid(EricksonLopez.MultiTenancy.TenantId tenantId) -> System.Guid
+static EricksonLopez.MultiTenancy.TenantId.NewId() -> EricksonLopez.MultiTenancy.TenantId
+static EricksonLopez.MultiTenancy.TenantId.Parse(string! s) -> EricksonLopez.MultiTenancy.TenantId
+static EricksonLopez.MultiTenancy.TenantId.Parse(string! s, System.IFormatProvider? provider) -> EricksonLopez.MultiTenancy.TenantId
+static EricksonLopez.MultiTenancy.TenantId.Parse(System.ReadOnlySpan<char> s) -> EricksonLopez.MultiTenancy.TenantId
+static EricksonLopez.MultiTenancy.TenantId.Parse(System.ReadOnlySpan<char> s, System.IFormatProvider? provider) -> EricksonLopez.MultiTenancy.TenantId
+static EricksonLopez.MultiTenancy.TenantId.TryParse(string? s, out EricksonLopez.MultiTenancy.TenantId result) -> bool
+static EricksonLopez.MultiTenancy.TenantId.TryParse(string? s, System.IFormatProvider? provider, out EricksonLopez.MultiTenancy.TenantId result) -> bool
+static EricksonLopez.MultiTenancy.TenantId.TryParse(System.ReadOnlySpan<char> s, out EricksonLopez.MultiTenancy.TenantId result) -> bool
+static EricksonLopez.MultiTenancy.TenantId.TryParse(System.ReadOnlySpan<char> s, System.IFormatProvider? provider, out EricksonLopez.MultiTenancy.TenantId result) -> bool
+static EricksonLopez.MultiTenancy.TenantId.operator !=(EricksonLopez.MultiTenancy.TenantId left, EricksonLopez.MultiTenancy.TenantId right) -> bool
+static EricksonLopez.MultiTenancy.TenantId.operator <(EricksonLopez.MultiTenancy.TenantId left, EricksonLopez.MultiTenancy.TenantId right) -> bool
+static EricksonLopez.MultiTenancy.TenantId.operator <=(EricksonLopez.MultiTenancy.TenantId left, EricksonLopez.MultiTenancy.TenantId right) -> bool
+static EricksonLopez.MultiTenancy.TenantId.operator ==(EricksonLopez.MultiTenancy.TenantId left, EricksonLopez.MultiTenancy.TenantId right) -> bool
+static EricksonLopez.MultiTenancy.TenantId.operator >(EricksonLopez.MultiTenancy.TenantId left, EricksonLopez.MultiTenancy.TenantId right) -> bool
+static EricksonLopez.MultiTenancy.TenantId.operator >=(EricksonLopez.MultiTenancy.TenantId left, EricksonLopez.MultiTenancy.TenantId right) -> bool
+static EricksonLopez.MultiTenancy.TenantId.TryCreate(string? value, out EricksonLopez.MultiTenancy.TenantId tenantId) -> bool
+static EricksonLopez.MultiTenancy.TenantId.TryCreate(System.Guid value, out EricksonLopez.MultiTenancy.TenantId tenantId) -> bool
+static EricksonLopez.MultiTenancy.TenantId.TryCreate(System.ReadOnlySpan<char> value, out EricksonLopez.MultiTenancy.TenantId tenantId) -> bool
+static EricksonLopez.MultiTenancy.TenantInfo.operator !=(EricksonLopez.MultiTenancy.TenantInfo? left, EricksonLopez.MultiTenancy.TenantInfo? right) -> bool
+static EricksonLopez.MultiTenancy.TenantInfo.operator ==(EricksonLopez.MultiTenancy.TenantInfo? left, EricksonLopez.MultiTenancy.TenantInfo? right) -> bool
+static readonly EricksonLopez.MultiTenancy.TenantErrors.Unresolved -> EricksonLopez.Result.Error!
+static readonly EricksonLopez.MultiTenancy.TenantId.Empty -> EricksonLopez.MultiTenancy.TenantId
+virtual EricksonLopez.MultiTenancy.TenantInfo.<Clone>$() -> EricksonLopez.MultiTenancy.TenantInfo!
+virtual EricksonLopez.MultiTenancy.TenantInfo.EqualityContract.get -> System.Type!
+virtual EricksonLopez.MultiTenancy.TenantInfo.Equals(EricksonLopez.MultiTenancy.TenantInfo? other) -> bool
+virtual EricksonLopez.MultiTenancy.TenantInfo.PrintMembers(System.Text.StringBuilder! builder) -> bool
+~override EricksonLopez.MultiTenancy.TenantId.Equals(object obj) -> bool

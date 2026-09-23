@@ -3,6 +3,9 @@
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 In complex multi-tenant enterprise architectures, tenants frequently require tenant-specific implementations or options (e.g., custom payment gateways, tenant-specific API keys, or custom feature flags).
 

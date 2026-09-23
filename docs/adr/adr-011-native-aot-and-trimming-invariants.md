@@ -3,6 +3,9 @@
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 Cloud-native workloads increasingly rely on **Native AOT (`PublishAot=true`)** and aggressive assembly trimming (`PublishTrimmed=true`) to achieve sub-10ms cold starts and tiny container footprints (<30MB).
 

@@ -1,5 +1,6 @@
 // Copyright © Erickson Lopez. MIT License.
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
@@ -169,5 +170,136 @@ public class InMemoryTenantStoreTests
         failResult.IsFailure.Should().BeTrue();
         failResult.Error.Code.Should().Be("Tenant.NotFound");
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-100)]
+    public void Constructor_InvalidCapacity_ThrowsArgumentOutOfRangeException(int capacity)
+    {
+        var act = () => new InMemoryTenantStore(capacity);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void AddOrUpdate_ExceedingMaxCapacity_ThrowsInvalidOperationException()
+    {
+        var store = new InMemoryTenantStore(maxCapacity: 2);
+        store.AddOrUpdate(new TenantInfo(new TenantId(Guid.NewGuid()), "Tenant1"));
+        store.AddOrUpdate(new TenantInfo(new TenantId(Guid.NewGuid()), "Tenant2"));
+
+        var act = () => store.AddOrUpdate(new TenantInfo(new TenantId(Guid.NewGuid()), "Tenant3"));
+        act.Should().Throw<InvalidOperationException>().WithMessage("*capacity*exceeded*");
+    }
+
+    [Fact]
+    public void AddOrUpdate_ExistingTenant_DoesNotExceedCapacity()
+    {
+        var store = new InMemoryTenantStore(maxCapacity: 2);
+        var tenant1 = new TenantInfo(new TenantId(Guid.NewGuid()), "Tenant1");
+        store.AddOrUpdate(tenant1);
+        store.AddOrUpdate(new TenantInfo(new TenantId(Guid.NewGuid()), "Tenant2"));
+
+        // Updating existing should not throw even if at capacity
+        var act = () => store.AddOrUpdate(tenant1);
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public async Task GetAllStreamAsync_YieldsAllTenants()
+    {
+        var tenants = new[]
+        {
+            new TenantInfo(new TenantId(AlphaGuid), "Alpha"),
+            new TenantInfo(new TenantId(BetaGuid), "Beta")
+        };
+
+        var store = new InMemoryTenantStore(tenants);
+
+        var list = new System.Collections.Generic.List<TenantInfo>();
+        await foreach (var tenant in store.GetAllStreamAsync())
+        {
+            list.Add(tenant);
+        }
+
+        list.Should().HaveCount(2);
+        list.Select(t => t.Name).Should().Contain(new[] { "Alpha", "Beta" });
+    }
+
+    [Fact]
+    public async Task GetAllStreamAsync_ViaInterface_YieldsAllTenants()
+    {
+        var tenants = new[]
+        {
+            new TenantInfo(new TenantId(AlphaGuid), "Alpha"),
+            new TenantInfo(new TenantId(BetaGuid), "Beta")
+        };
+
+        ITenantStore store = new InMemoryTenantStore(tenants);
+
+        var list = new System.Collections.Generic.List<ITenantInfo>();
+        await foreach (var tenant in store.GetAllStreamAsync())
+        {
+            list.Add(tenant);
+        }
+
+        list.Should().HaveCount(2);
+        list.Select(t => t.Name).Should().Contain(new[] { "Alpha", "Beta" });
+    }
+
+    [Fact]
+    public async Task Constructor_WithTenantsAndMaxCapacity_PopulatesStoreAndEnforcesCapacity()
+    {
+        var tenants = new[]
+        {
+            new TenantInfo(new TenantId(AlphaGuid), "Alpha")
+        };
+
+        var genericStore = new InMemoryTenantStore<TenantInfo>(tenants, 2);
+        var resultGeneric = await genericStore.GetTenantAsync(new TenantId(AlphaGuid));
+        resultGeneric.IsSuccess.Should().BeTrue();
+
+        var nonGenericStore = new InMemoryTenantStore(tenants, 2);
+        var resultNonGeneric = await nonGenericStore.GetTenantAsync(new TenantId(AlphaGuid));
+        resultNonGeneric.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void TryAdd_BehavesCorrectlyRespectingCapacity()
+    {
+        var store = new InMemoryTenantStore(maxCapacity: 1);
+        var t1 = new TenantInfo(new TenantId(AlphaGuid), "Alpha");
+        var t2 = new TenantInfo(new TenantId(BetaGuid), "Beta");
+
+        store.TryAdd(t1).Should().BeTrue();
+        store.TryAdd(t1).Should().BeFalse();
+        store.TryAdd(t2).Should().BeFalse();
+    }
+
+    [Fact]
+    public void TryRemove_RemovesTenantCorrectly()
+    {
+        var store = new InMemoryTenantStore();
+        var id = new TenantId(AlphaGuid);
+        var t1 = new TenantInfo(id, "Alpha");
+
+        store.AddOrUpdate(t1);
+        store.TryRemove(id).Should().BeTrue();
+        store.TryRemove(id).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Clear_EmptiesAllTenants()
+    {
+        var store = new InMemoryTenantStore();
+        var id = new TenantId(AlphaGuid);
+        store.AddOrUpdate(new TenantInfo(id, "Alpha"));
+
+        store.Clear();
+
+        var result = await store.GetTenantAsync(id);
+        result.IsFailure.Should().BeTrue();
+    }
 }
+
 

@@ -12,7 +12,7 @@ namespace EricksonLopez.MultiTenancy.Analyzers;
 public sealed class TenantContextStaticFieldAnalyzer : DiagnosticAnalyzer
 {
     /// <summary>
-    /// The diagnostic identifier for ELMT001.
+    /// Defines the diagnostic identifier for ELMT001.
     /// </summary>
     public const string DiagnosticId = "ELMT001";
 
@@ -54,7 +54,7 @@ public sealed class TenantContextStaticFieldAnalyzer : DiagnosticAnalyzer
         var fieldType = fieldSymbol.Type;
         var typeName = fieldType.ToDisplayString();
 
-        if (typeName.Contains("TenantContext"))
+        if (IsTenantState(typeName))
         {
             var diagnostic = Diagnostic.Create(
                 _rule,
@@ -64,5 +64,15 @@ public sealed class TenantContextStaticFieldAnalyzer : DiagnosticAnalyzer
 
             context.ReportDiagnostic(diagnostic);
         }
+    }
+
+    private static bool IsTenantState(string typeName)
+    {
+        return (typeName.Contains("TenantContext") ||
+                typeName.Contains("ITenantInfo") ||
+                typeName.Contains("TenantInfo") ||
+                typeName.Contains("TenantId"))
+            && !typeName.Contains("TenantContextBuilder")
+            && !typeName.Contains("TestTenantContext");
     }
 }

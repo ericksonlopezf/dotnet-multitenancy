@@ -21,15 +21,20 @@ public class TenantCookieAuthenticationEvents<TTenant> : CookieAuthenticationEve
     where TTenant : class, ITenantInfo
 {
     private readonly string _tenantClaimType;
+    private readonly bool _requireTenantClaim;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TenantCookieAuthenticationEvents{TTenant}"/> class.
     /// </summary>
     /// <param name="tenantClaimType">The claim type used to store the tenant identifier in the cookie (default: <c>tenant_id</c>).</param>
+    /// <param name="requireTenantClaim">
+    /// If <see langword="true"/>, rejects authenticated principals that lack a tenant claim when a tenant context is active (default: <see langword="true"/>).
+    /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="tenantClaimType"/> is <see langword="null"/></exception>
-    public TenantCookieAuthenticationEvents(string tenantClaimType = "tenant_id")
+    public TenantCookieAuthenticationEvents(string tenantClaimType = "tenant_id", bool requireTenantClaim = true)
     {
         _tenantClaimType = tenantClaimType ?? throw new ArgumentNullException(nameof(tenantClaimType));
+        _requireTenantClaim = requireTenantClaim;
     }
 
     /// <inheritdoc />
@@ -40,12 +45,19 @@ public class TenantCookieAuthenticationEvents<TTenant> : CookieAuthenticationEve
         var tenantContextAccessor = context.HttpContext.RequestServices.GetRequiredService<ITenantContextAccessor>();
         var currentTenantContext = tenantContextAccessor.TenantContext;
 
-        if (currentTenantContext?.Tenant != null)
+        if (currentTenantContext?.Tenant != null && context.Principal?.Identity?.IsAuthenticated == true)
         {
-            var principalTenantId = context.Principal?.FindFirst(_tenantClaimType)?.Value;
+            var principalTenantId = context.Principal.FindFirst(_tenantClaimType)?.Value;
 
-            // If the principal has a tenant claim but it does not match the current tenant context, reject the principal.
-            if (principalTenantId != null && !string.Equals(principalTenantId, currentTenantContext.Tenant.Id.ToString(), StringComparison.OrdinalIgnoreCase))
+            if (principalTenantId is null)
+            {
+                if (_requireTenantClaim)
+                {
+                    context.RejectPrincipal();
+                    return Task.CompletedTask;
+                }
+            }
+            else if (!string.Equals(principalTenantId, currentTenantContext.Tenant.Id.ToString(), StringComparison.OrdinalIgnoreCase))
             {
                 context.RejectPrincipal();
                 return Task.CompletedTask;
