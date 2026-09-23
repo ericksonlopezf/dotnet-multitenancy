@@ -165,7 +165,7 @@ public static class AdvancedIntegrationDemo
         await OracleVpdExtensions.ResetTenantVpdContextAsync(connection, cancellationToken: ct);
 
         // NOTE: If you already have an open transaction, use the lower-level API directly:
-        // await connection.SetTenantVpdContextAsync(tenantContext, existingTx, setClientIdProperty: true, ct);
+        // await connection.SetTenantVpdContextAsync(existingTx, tenantContext, setClientIdProperty: true, ct);
     }
 
     /// <summary>

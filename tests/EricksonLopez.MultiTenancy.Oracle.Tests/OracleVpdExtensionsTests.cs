@@ -46,9 +46,10 @@ public class OracleVpdExtensionsTests
     public async Task SetTenantVpdContextAsync_NullConnection_ThrowsArgumentNullException()
     {
         FakeDbConnection connection = null!;
+        var transaction = Substitute.For<DbTransaction>();
         var context = Substitute.For<ITenantContext>();
 
-        var act = () => connection.SetTenantVpdContextAsync(context);
+        var act = () => connection.SetTenantVpdContextAsync(transaction, context);
         await act.Should().ThrowAsync<ArgumentNullException>().WithParameterName("connection");
     }
 
@@ -56,17 +57,30 @@ public class OracleVpdExtensionsTests
     public async Task SetTenantVpdContextAsync_NullContext_ThrowsArgumentNullException()
     {
         var connection = new FakeDbConnection();
-        var act = () => connection.SetTenantVpdContextAsync(null!);
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
+        var act = () => connection.SetTenantVpdContextAsync(transaction, null!);
         await act.Should().ThrowAsync<ArgumentNullException>().WithParameterName("tenantContext");
+    }
+
+    [Fact]
+    public async Task SetTenantVpdContextAsync_NullTransaction_ThrowsInvalidOperationException()
+    {
+        var connection = new FakeDbConnection();
+        var context = CreateContext(ExpectedTenantId);
+
+        var act = () => connection.SetTenantVpdContextAsync(null!, context);
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("Setting Oracle VPD context requires an active transaction to prevent context leakage across connection pool reuse. Call BeginTenantTransactionAsync() or BeginTransactionAsync() before calling SetTenantVpdContextAsync().");
     }
 
     [Fact]
     public async Task SetTenantVpdContextAsync_EmptyTenantId_ThrowsTenantNotFoundException()
     {
         var connection = new FakeDbConnection();
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
         var context = CreateContext(TenantId.Empty);
 
-        var act = () => connection.SetTenantVpdContextAsync(context);
+        var act = () => connection.SetTenantVpdContextAsync(transaction, context);
         (await act.Should().ThrowAsync<TenantNotFoundException>())
             .WithMessage("Tenant identifier is empty. Cannot establish Oracle VPD tenant context.");
     }
@@ -75,12 +89,14 @@ public class OracleVpdExtensionsTests
     public async Task SetTenantVpdContextAsync_Valid_ExecutesExpectedCommandAndSetsClientId()
     {
         var connection = new FakeDbConnection();
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
         var context = CreateContext(ExpectedTenantId);
 
-        await connection.SetTenantVpdContextAsync(context);
+        await connection.SetTenantVpdContextAsync(transaction, context);
 
         var cmd = connection.Commands.Single();
         cmd.CommandText.Should().Be("BEGIN DBMS_SESSION.SET_IDENTIFIER(:tenantId); END;");
+        cmd.Transaction.Should().BeSameAs(transaction);
 
         cmd.Parameters["tenantId"].Value.Should().Be(ExpectedGuid.ToString());
         cmd.Parameters["tenantId"].DbType.Should().Be(DbType.String);
@@ -92,9 +108,10 @@ public class OracleVpdExtensionsTests
     public async Task SetTenantVpdContextAsync_MissingClientIdProperty_DoesNotThrow()
     {
         var connection = new FakeDbConnectionWithoutClientId();
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
         var context = CreateContext(ExpectedTenantId);
 
-        var act = () => connection.SetTenantVpdContextAsync(context);
+        var act = () => connection.SetTenantVpdContextAsync(transaction, context);
         await act.Should().NotThrowAsync();
     }
 
@@ -102,23 +119,25 @@ public class OracleVpdExtensionsTests
     public async Task SetTenantVpdContextAsync_ReadOnlyClientIdProperty_DoesNotThrow()
     {
         var connection = new FakeDbConnectionWithReadOnlyClientId();
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
         var context = CreateContext(ExpectedTenantId);
 
-        var act = () => connection.SetTenantVpdContextAsync(context);
+        var act = () => connection.SetTenantVpdContextAsync(transaction, context);
         await act.Should().NotThrowAsync();
     }
-
 
     [Fact]
     public async Task SetTenantVpdContextAsync_ValidWithoutClientId_ExecutesCommandButDoesNotSetClientId()
     {
         var connection = new FakeDbConnection();
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
         var context = CreateContext(ExpectedTenantId);
 
-        await connection.SetTenantVpdContextAsync(context, setClientIdProperty: false);
+        await connection.SetTenantVpdContextAsync(transaction, context, setClientIdProperty: false);
 
         var cmd = connection.Commands.Single();
         cmd.CommandText.Should().Be("BEGIN DBMS_SESSION.SET_IDENTIFIER(:tenantId); END;");
+        cmd.Transaction.Should().BeSameAs(transaction);
         connection.ClientId.Should().BeEmpty();
     }
 
@@ -245,11 +264,12 @@ public class OracleVpdExtensionsTests
     public async Task SetTenantVpdContextAsync_CancelledToken_ThrowsOperationCanceledException()
     {
         var connection = new FakeDbConnection();
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
         var context = CreateContext(ExpectedTenantId);
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        var act = () => connection.SetTenantVpdContextAsync(context, cancellationToken: cts.Token);
+        var act = () => connection.SetTenantVpdContextAsync(transaction, context, cancellationToken: cts.Token);
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
@@ -262,6 +282,30 @@ public class OracleVpdExtensionsTests
 
         var act = () => connection.ResetTenantVpdContextAsync(cancellationToken: cts.Token);
         await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public void ResetTenantVpdContext_NullConnection_ThrowsArgumentNullException()
+    {
+        DbConnection connection = null!;
+        var act = () => connection.ResetTenantVpdContext();
+        act.Should().Throw<ArgumentNullException>().WithParameterName("connection");
+    }
+
+    [Fact]
+    public void ResetTenantVpdContext_Valid_ClearsClientIdAndExecutesCommand()
+    {
+        var connection = new FakeDbConnection
+        {
+            ClientId = "OLD_TENANT"
+        };
+        connection.Open();
+
+        connection.ResetTenantVpdContext();
+
+        connection.ClientId.Should().BeEmpty();
+        connection.Commands.Should().ContainSingle();
+        connection.Commands.Single().CommandText.Should().Be("BEGIN DBMS_SESSION.CLEAR_IDENTIFIER; END;");
     }
 
     private static ITenantContext CreateContext(TenantId id)

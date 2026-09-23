@@ -98,6 +98,98 @@ public class ITenantContextDefaultInterfaceMethodsTests
         tenant.Should().NotBeNull();
         tenant.Name.Should().Be("Valid");
     }
+
+    private class TestContextInactiveTenant : ITenantContext
+    {
+        public ITenantInfo? Tenant { get; } = new TenantInfo(TenantId.NewId(), "Inactive", isActive: false);
+        public bool IsResolved => true;
+        public TenantResolutionSource Source => TenantResolutionSource.None;
+    }
+
+    private class TestContextUnresolvedWithTenant : ITenantContext
+    {
+        public ITenantInfo? Tenant { get; } = new TenantInfo(TenantId.NewId(), "Tenant");
+        public bool IsResolved => false;
+        public TenantResolutionSource Source => TenantResolutionSource.None;
+    }
+
+    [Fact]
+    public void RequiredTenant_WhenTenantIsInactive_ThrowsTenantInactiveException()
+    {
+        ITenantContext context = new TestContextInactiveTenant();
+        var act = () => _ = context.RequiredTenant;
+        act.Should().Throw<TenantInactiveException>();
+    }
+
+    [Fact]
+    public void RequiredTenant_WhenTenantNotNullButNotResolved_ThrowsTenantNotFoundException()
+    {
+        ITenantContext context = new TestContextUnresolvedWithTenant();
+        var act = () => _ = context.RequiredTenant;
+        act.Should().Throw<TenantNotFoundException>()
+           .WithMessage("The resolved tenant is invalid or has an empty identifier.");
+    }
+}
+
+public class ITenantResolutionStrategyTests
+{
+    private class DefaultStrategy : ITenantResolutionStrategy
+    {
+        public string StrategyName => "Default";
+
+        public System.Threading.Tasks.ValueTask<EricksonLopez.Result.Result<TenantId>> ResolveTenantIdAsync(System.Threading.CancellationToken cancellationToken = default) =>
+            System.Threading.Tasks.ValueTask.FromResult(EricksonLopez.Result.Result<TenantId>.Failure(TenantErrors.Unresolved));
+    }
+
+    [Fact]
+    public void Source_DefaultImplementation_ReturnsNone()
+    {
+        ITenantResolutionStrategy strategy = new DefaultStrategy();
+        strategy.Source.Should().Be(TenantResolutionSource.None);
+        strategy.StrategyName.Should().Be("Default");
+    }
+}
+
+public class ITenantStoreDefaultMethodsTests
+{
+    private class TestUntypedStore : ITenantStore
+    {
+        public Task<EricksonLopez.Result.Result<ITenantInfo>> GetTenantAsync(TenantId tenantId, System.Threading.CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+    }
+
+    private class TestTypedStore : ITenantStore<TenantInfo>
+    {
+        public Task<EricksonLopez.Result.Result<ITenantInfo>> GetTenantAsync(TenantId tenantId, System.Threading.CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        Task<EricksonLopez.Result.Result<TenantInfo>> ITenantStore<TenantInfo>.GetTenantAsync(TenantId tenantId, System.Threading.CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+    }
+
+    [Fact]
+    public async Task GetAllStreamAsync_UntypedStore_DefaultImplementation_YieldsBreak()
+    {
+        ITenantStore store = new TestUntypedStore();
+        var count = 0;
+        await foreach (var _ in store.GetAllStreamAsync())
+        {
+            count++;
+        }
+        count.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetAllStreamAsync_TypedStore_DefaultImplementation_YieldsBreak()
+    {
+        ITenantStore<TenantInfo> store = new TestTypedStore();
+        var count = 0;
+        await foreach (var _ in store.GetAllStreamAsync())
+        {
+            count++;
+        }
+        count.Should().Be(0);
+    }
 }
 
 public class TenantInfoTests

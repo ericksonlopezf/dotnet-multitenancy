@@ -3,6 +3,9 @@
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 `AsyncLocalTenantContextAccessor` uses a `static readonly AsyncLocal<ITenantContext?>` field and is registered as a Singleton via `TryAddSingleton<ITenantContextAccessor, AsyncLocalTenantContextAccessor>()`.
 

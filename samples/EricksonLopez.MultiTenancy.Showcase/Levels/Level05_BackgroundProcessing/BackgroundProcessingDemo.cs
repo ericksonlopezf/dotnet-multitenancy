@@ -73,4 +73,33 @@ public static class BackgroundProcessingDemo
             return count;
         }
     }
+
+    /// <summary>
+    /// Demonstrates AmbientTenantContextHolder for decoupled workers where DI scopes are unavailable.
+    /// Also covers TenantResolutionSource.MessageMetadata for message-bus driven tenant resolution.
+    /// </summary>
+    public static void DemonstrateAmbientContextAndMessageResolution()
+    {
+        Console.WriteLine("--- Demonstrating AmbientTenantContextHolder ---");
+
+        // AmbientTenantContextHolder.Current is null by default outside a scope
+        ITenantContext? initialCurrent = AmbientTenantContextHolder.Current;
+        Console.WriteLine($"Before scope: AmbientTenantContextHolder.Current is null = {initialCurrent is null}");
+
+        // Establish an ambient context for a message-bus consumer that reads tenant from message metadata
+        var tenantInfo = new TenantInfo(TenantId.Create("11111111-1111-1111-1111-111111111111"), "message-tenant");
+        // TenantResolutionSource.MessageMetadata represents tenant ID embedded in message headers/envelope
+        ITenantContext messageContext = TenantContext.Create(tenantInfo, TenantResolutionSource.MessageMetadata);
+
+        using (AmbientTenantContextHolder.SetCurrentScoped(messageContext))
+        {
+            // Within this scope, AmbientTenantContextHolder.Current returns the message-bound context
+            ITenantContext? current = AmbientTenantContextHolder.Current;
+            Console.WriteLine($"Inside scope: Current tenant = '{current?.Tenant?.Name}', Source = {current?.Source}");
+        }
+
+        // After disposal the previous (null) context is automatically restored
+        ITenantContext? afterScope = AmbientTenantContextHolder.Current;
+        Console.WriteLine($"After scope: AmbientTenantContextHolder.Current is null = {afterScope is null}");
+    }
 }

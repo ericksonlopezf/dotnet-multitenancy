@@ -267,4 +267,207 @@ public class TenantIdTests
         var id = (TenantId)AlphaGuid;
         id.Value.Should().Be(AlphaGuid);
     }
+
+    [Fact]
+    public void Create_FromValidReadOnlySpan_ReturnsCorrectStruct()
+    {
+        ReadOnlySpan<char> span = AlphaGuid.ToString("D").AsSpan();
+        var tenantId = TenantId.Create(span);
+
+        tenantId.Value.Should().Be(AlphaGuid);
+        tenantId.IsEmpty.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Create_FromWhitespaceReadOnlySpan_ThrowsArgumentException(string value)
+    {
+        var act = () => TenantId.Create(value.AsSpan());
+
+        act.Should().Throw<ArgumentException>()
+           .WithMessage("*cannot be empty or whitespace*")
+           .WithParameterName(nameof(value));
+    }
+
+    [Theory]
+    [InlineData("not-a-valid-guid")]
+    [InlineData("00000000-0000-0000-0000-000000000000")]
+    public void Create_FromInvalidReadOnlySpan_ThrowsArgumentException(string value)
+    {
+        var act = () => TenantId.Create(value.AsSpan());
+
+        act.Should().Throw<ArgumentException>()
+           .WithMessage("*is not a valid tenant identifier*")
+           .WithParameterName(nameof(value));
+    }
+
+    [Fact]
+    public void From_ValidReadOnlySpan_ReturnsSuccessResult()
+    {
+        var result = TenantId.From(AlphaGuid.ToString("D").AsSpan());
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Value.Should().Be(AlphaGuid);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("invalid-guid")]
+    [InlineData("00000000-0000-0000-0000-000000000000")]
+    public void From_InvalidReadOnlySpan_ReturnsFailureInvalidId(string value)
+    {
+        var result = TenantId.From(value.AsSpan());
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Tenant.InvalidId");
+    }
+
+    [Fact]
+    public void TryCreate_ValidReadOnlySpan_ReturnsTrueAndSetsOutParam()
+    {
+        var success = TenantId.TryCreate(AlphaGuid.ToString("D").AsSpan(), out var tenantId);
+
+        success.Should().BeTrue();
+        tenantId.Value.Should().Be(AlphaGuid);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("not-a-guid")]
+    [InlineData("00000000-0000-0000-0000-000000000000")]
+    public void TryCreate_InvalidReadOnlySpan_ReturnsFalseAndSetsEmpty(string value)
+    {
+        var success = TenantId.TryCreate(value.AsSpan(), out var tenantId);
+
+        success.Should().BeFalse();
+        tenantId.Should().Be(TenantId.Empty);
+    }
+
+    [Fact]
+    public void Parse_ValidString_ReturnsExpectedTenantId()
+    {
+        var str = AlphaGuid.ToString("D");
+        var parsed = TenantId.Parse(str, null);
+        parsed.Value.Should().Be(AlphaGuid);
+    }
+
+    [Fact]
+    public void Parse_NullString_ThrowsArgumentNullException()
+    {
+        var act = () => TenantId.Parse(null!, null);
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("not-a-guid")]
+    [InlineData("00000000-0000-0000-0000-000000000000")]
+    public void Parse_InvalidString_ThrowsFormatException(string invalid)
+    {
+        var act = () => TenantId.Parse(invalid, null);
+        act.Should().Throw<FormatException>();
+    }
+
+    [Fact]
+    public void TryParse_ValidString_ReturnsTrueAndSetsOut()
+    {
+        var str = AlphaGuid.ToString("D");
+        var success = TenantId.TryParse(str, null, out var parsed);
+        success.Should().BeTrue();
+        parsed.Value.Should().Be(AlphaGuid);
+
+        var successNoProvider = TenantId.TryParse(str, out var parsedNoProvider);
+        successNoProvider.Should().BeTrue();
+        parsedNoProvider.Value.Should().Be(AlphaGuid);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData("invalid")]
+    [InlineData("00000000-0000-0000-0000-000000000000")]
+    public void TryParse_InvalidString_ReturnsFalseAndSetsEmpty(string? invalid)
+    {
+        var success = TenantId.TryParse(invalid, null, out var parsed);
+        success.Should().BeFalse();
+        parsed.Should().Be(TenantId.Empty);
+
+        var successNoProvider = TenantId.TryParse(invalid, out var parsedNoProvider);
+        successNoProvider.Should().BeFalse();
+        parsedNoProvider.Should().Be(TenantId.Empty);
+    }
+
+    [Fact]
+    public void Parse_ValidReadOnlySpan_ReturnsExpectedTenantId()
+    {
+        var span = AlphaGuid.ToString("D").AsSpan();
+        var parsed = TenantId.Parse(span, null);
+        parsed.Value.Should().Be(AlphaGuid);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("bad-span")]
+    [InlineData("00000000-0000-0000-0000-000000000000")]
+    public void Parse_InvalidReadOnlySpan_ThrowsFormatException(string invalid)
+    {
+        var act = () => TenantId.Parse(invalid.AsSpan(), null);
+        act.Should().Throw<FormatException>();
+    }
+
+    [Fact]
+    public void TryParse_ValidReadOnlySpan_ReturnsTrueAndSetsOut()
+    {
+        var span = AlphaGuid.ToString("D").AsSpan();
+        var success = TenantId.TryParse(span, null, out var parsed);
+        success.Should().BeTrue();
+        parsed.Value.Should().Be(AlphaGuid);
+
+        var successNoProvider = TenantId.TryParse(span, out var parsedNoProvider);
+        successNoProvider.Should().BeTrue();
+        parsedNoProvider.Value.Should().Be(AlphaGuid);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData("invalid")]
+    [InlineData("00000000-0000-0000-0000-000000000000")]
+    public void TryParse_InvalidReadOnlySpan_ReturnsFalseAndSetsEmpty(string invalid)
+    {
+        var success = TenantId.TryParse(invalid.AsSpan(), null, out var parsed);
+        success.Should().BeFalse();
+        parsed.Should().Be(TenantId.Empty);
+
+        var successNoProvider = TenantId.TryParse(invalid.AsSpan(), out var parsedNoProvider);
+        successNoProvider.Should().BeFalse();
+        parsedNoProvider.Should().Be(TenantId.Empty);
+    }
+
+    [Fact]
+    public void TenantId_Implements_ISpanParsable()
+    {
+        typeof(ISpanParsable<TenantId>).IsAssignableFrom(typeof(TenantId)).Should().BeTrue();
+        typeof(IParsable<TenantId>).IsAssignableFrom(typeof(TenantId)).Should().BeTrue();
+    }
+
+    [Fact]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1305:Specify IFormatProvider", Justification = "Testing single-argument convenience overload.")]
+    public void Parse_SingleArgument_String_ReturnsTenantId()
+    {
+        var result = TenantId.Parse(AlphaGuid.ToString());
+        result.Value.Should().Be(AlphaGuid);
+    }
+
+    [Fact]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1305:Specify IFormatProvider", Justification = "Testing single-argument convenience overload.")]
+    public void Parse_SingleArgument_ReadOnlySpan_ReturnsTenantId()
+    {
+        var result = TenantId.Parse(AlphaGuid.ToString().AsSpan());
+        result.Value.Should().Be(AlphaGuid);
+    }
 }

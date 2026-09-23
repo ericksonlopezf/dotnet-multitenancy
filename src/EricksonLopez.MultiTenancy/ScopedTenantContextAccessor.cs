@@ -1,5 +1,6 @@
 // Copyright © Erickson Lopez. MIT License.
 using System;
+using System.Threading;
 
 namespace EricksonLopez.MultiTenancy;
 
@@ -9,16 +10,16 @@ namespace EricksonLopez.MultiTenancy;
 public sealed class ScopedTenantContextAccessor : ITenantContextAccessor
 {
     private ITenantContext? _context;
-    private bool _isSet;
+    private int _isSet;
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">The tenant context has already been set for this scope</exception>
     public ITenantContext? TenantContext
     {
-        get => _context;
+        get => Volatile.Read(ref _context);
         set
         {
-            if (_isSet)
+            if (Interlocked.CompareExchange(ref _isSet, 1, 0) != 0)
             {
                 throw new InvalidOperationException(
                     "The tenant context has already been set for this scope. " +
@@ -26,8 +27,7 @@ public sealed class ScopedTenantContextAccessor : ITenantContextAccessor
                     "Each scope may only have one tenant context.");
             }
 
-            _context = value;
-            _isSet = true;
+            Volatile.Write(ref _context, value);
         }
     }
 }

@@ -3,6 +3,9 @@
 ## Status
 Rejected (Discard Record)
 
+## Date
+2026-09-04
+
 ## Context
 A legacy design in older .NET multi-tenancy frameworks is to store the resolved tenant identifier in a `[ThreadStatic]` field or static accessor to make the tenant ID globally accessible across all static methods without constructor injection.
 

@@ -1,5 +1,6 @@
 // Copyright © Erickson Lopez. MIT License.
 using System;
+using System.Diagnostics.CodeAnalysis;
 using EricksonLopez.Result;
 
 namespace EricksonLopez.MultiTenancy;
@@ -8,7 +9,7 @@ namespace EricksonLopez.MultiTenancy;
 /// Represents an immutable, strongly-typed tenant identifier backed by a <see cref="Guid"/>.
 /// </summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(Serialization.TenantIdJsonConverter))]
-public readonly record struct TenantId : IEquatable<TenantId>, IComparable<TenantId>, IComparable
+public readonly record struct TenantId : IEquatable<TenantId>, IComparable<TenantId>, IComparable, ISpanParsable<TenantId>
 {
     /// <summary>
     /// Gets the underlying <see cref="Guid"/> value of this tenant identifier.
@@ -75,6 +76,134 @@ public readonly record struct TenantId : IEquatable<TenantId>, IComparable<Tenan
     }
 
     /// <summary>
+    /// Creates a new <see cref="TenantId"/> by parsing a character span representation of a GUID.
+    /// </summary>
+    /// <param name="value">The character span representation of the GUID to parse.</param>
+    /// <returns>A new <see cref="TenantId"/> instance.</returns>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is empty, consists only of white-space characters, or is not a valid GUID</exception>
+    public static TenantId Create(ReadOnlySpan<char> value)
+    {
+        if (value.IsWhiteSpace())
+        {
+            throw new ArgumentException("Tenant identifier cannot be empty or whitespace.", nameof(value));
+        }
+
+        if (!Guid.TryParse(value, out var guid) || guid == Guid.Empty)
+        {
+            throw new ArgumentException($"'{value.ToString()}' is not a valid tenant identifier. Expected a non-empty GUID.", nameof(value));
+        }
+
+        return new TenantId(guid);
+    }
+
+    /// <summary>
+    /// Parses a string into a <see cref="TenantId"/>.
+    /// </summary>
+    /// <param name="s">The string to parse.</param>
+    /// <returns>The parsed <see cref="TenantId"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="s"/> is <see langword="null"/></exception>
+    /// <exception cref="FormatException"><paramref name="s"/> is not a valid GUID or represents an empty GUID</exception>
+    public static TenantId Parse(string s) => Parse(s, null);
+
+    /// <summary>
+    /// Parses a string into a <see cref="TenantId"/>.
+    /// </summary>
+    /// <param name="s">The string to parse.</param>
+    /// <param name="provider">An optional format provider.</param>
+    /// <returns>The parsed <see cref="TenantId"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="s"/> is <see langword="null"/></exception>
+    /// <exception cref="FormatException"><paramref name="s"/> is not a valid GUID or represents an empty GUID</exception>
+    public static TenantId Parse(string s, IFormatProvider? provider)
+    {
+        ArgumentNullException.ThrowIfNull(s);
+        if (string.IsNullOrWhiteSpace(s) || !Guid.TryParse(s, provider, out var guid) || guid == Guid.Empty)
+        {
+            throw new FormatException($"'{s}' is not a valid non-empty tenant identifier.");
+        }
+
+        return new TenantId(guid);
+    }
+
+    /// <summary>
+    /// Attempts to parse a string into a <see cref="TenantId"/>.
+    /// </summary>
+    /// <param name="s">The string to parse.</param>
+    /// <param name="provider">An optional format provider.</param>
+    /// <param name="result">When this method returns, contains the parsed <see cref="TenantId"/> if successful; otherwise, <see cref="Empty"/>.</param>
+    /// <returns><see langword="true"/> if parsed successfully; otherwise, <see langword="false"/>.</returns>
+    public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out TenantId result)
+    {
+        if (string.IsNullOrWhiteSpace(s) || !Guid.TryParse(s, provider, out var guid) || guid == Guid.Empty)
+        {
+            result = Empty;
+            return false;
+        }
+
+        result = new TenantId(guid);
+        return true;
+    }
+
+    /// <summary>
+    /// Parses a character span into a <see cref="TenantId"/>.
+    /// </summary>
+    /// <param name="s">The span of characters to parse.</param>
+    /// <returns>The parsed <see cref="TenantId"/>.</returns>
+    /// <exception cref="FormatException"><paramref name="s"/> is not a valid GUID or represents an empty GUID</exception>
+    public static TenantId Parse(ReadOnlySpan<char> s) => Parse(s, null);
+
+    /// <summary>
+    /// Parses a character span into a <see cref="TenantId"/>.
+    /// </summary>
+    /// <param name="s">The span of characters to parse.</param>
+    /// <param name="provider">An optional format provider.</param>
+    /// <returns>The parsed <see cref="TenantId"/>.</returns>
+    /// <exception cref="FormatException"><paramref name="s"/> is not a valid GUID or represents an empty GUID</exception>
+    public static TenantId Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
+    {
+        if (s.IsWhiteSpace() || !Guid.TryParse(s, provider, out var guid) || guid == Guid.Empty)
+        {
+            throw new FormatException($"'{s.ToString()}' is not a valid non-empty tenant identifier.");
+        }
+
+        return new TenantId(guid);
+    }
+
+    /// <summary>
+    /// Attempts to parse a character span into a <see cref="TenantId"/>.
+    /// </summary>
+    /// <param name="s">The span of characters to parse.</param>
+    /// <param name="provider">An optional format provider.</param>
+    /// <param name="result">When this method returns, contains the parsed <see cref="TenantId"/> if successful; otherwise, <see cref="Empty"/>.</param>
+    /// <returns><see langword="true"/> if parsed successfully; otherwise, <see langword="false"/>.</returns>
+    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out TenantId result)
+    {
+        if (s.IsWhiteSpace() || !Guid.TryParse(s, provider, out var guid) || guid == Guid.Empty)
+        {
+            result = Empty;
+            return false;
+        }
+
+        result = new TenantId(guid);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to parse a string into a <see cref="TenantId"/> using the default format provider.
+    /// </summary>
+    /// <param name="s">The string to parse.</param>
+    /// <param name="result">When this method returns, contains the parsed <see cref="TenantId"/> if successful; otherwise, <see cref="Empty"/>.</param>
+    /// <returns><see langword="true"/> if parsed successfully; otherwise, <see langword="false"/>.</returns>
+    public static bool TryParse([NotNullWhen(true)] string? s, out TenantId result) => TryParse(s, null, out result);
+
+    /// <summary>
+    /// Attempts to parse a character span into a <see cref="TenantId"/> using the default format provider.
+    /// </summary>
+    /// <param name="s">The span of characters to parse.</param>
+    /// <param name="result">When this method returns, contains the parsed <see cref="TenantId"/> if successful; otherwise, <see cref="Empty"/>.</param>
+    /// <returns><see langword="true"/> if parsed successfully; otherwise, <see langword="false"/>.</returns>
+    public static bool TryParse(ReadOnlySpan<char> s, out TenantId result) => TryParse(s, null, out result);
+
+    /// <summary>
     /// Generates a new unique <see cref="TenantId"/> backed by a new random <see cref="Guid"/>.
     /// </summary>
     /// <returns>A new unique <see cref="TenantId"/> instance.</returns>
@@ -111,6 +240,21 @@ public readonly record struct TenantId : IEquatable<TenantId>, IComparable<Tenan
     }
 
     /// <summary>
+    /// Creates a <see cref="TenantId"/> from a character span representation wrapped in a <see cref="Result{T}"/>.
+    /// </summary>
+    /// <param name="value">The character span representation of the GUID to parse.</param>
+    /// <returns>A successful <see cref="Result{T}"/> containing the <see cref="TenantId"/> if valid; otherwise, a failure result.</returns>
+    public static Result<TenantId> From(ReadOnlySpan<char> value)
+    {
+        if (value.IsWhiteSpace() || !Guid.TryParse(value, out var guid) || guid == Guid.Empty)
+        {
+            return TenantErrors.InvalidId(value.ToString());
+        }
+
+        return new TenantId(guid);
+    }
+
+    /// <summary>
     /// Attempts to create a <see cref="TenantId"/> from the specified string representation.
     /// </summary>
     /// <param name="value">The string representation of the GUID to parse.</param>
@@ -124,6 +268,29 @@ public readonly record struct TenantId : IEquatable<TenantId>, IComparable<Tenan
     public static bool TryCreate(string? value, out TenantId tenantId)
     {
         if (string.IsNullOrWhiteSpace(value) || !Guid.TryParse(value, out var guid) || guid == Guid.Empty)
+        {
+            tenantId = Empty;
+            return false;
+        }
+
+        tenantId = new TenantId(guid);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to create a <see cref="TenantId"/> from the specified character span representation.
+    /// </summary>
+    /// <param name="value">The character span representation of the GUID to parse.</param>
+    /// <param name="tenantId">
+    /// When this method returns, contains the parsed <see cref="TenantId"/> if the parse operation succeeded;
+    /// otherwise, <see cref="Empty"/>.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if the character span was successfully parsed; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool TryCreate(ReadOnlySpan<char> value, out TenantId tenantId)
+    {
+        if (value.IsWhiteSpace() || !Guid.TryParse(value, out var guid) || guid == Guid.Empty)
         {
             tenantId = Empty;
             return false;

@@ -21,6 +21,9 @@ public sealed class BasePathTenantResolutionStrategy : ITenantResolutionStrategy
     /// <inheritdoc />
     public string StrategyName => "BasePath";
 
+    /// <inheritdoc />
+    public TenantResolutionSource Source => TenantResolutionSource.Route;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="BasePathTenantResolutionStrategy"/> class.
     /// </summary>
@@ -39,8 +42,6 @@ public sealed class BasePathTenantResolutionStrategy : ITenantResolutionStrategy
         _segmentIndex = segmentIndex >= 0 ? segmentIndex : throw new ArgumentOutOfRangeException(nameof(segmentIndex), "Segment index must be non-negative.");
     }
 
-    private static readonly char[] _pathSeparators = ['/'];
-
     /// <inheritdoc />
     [SuppressMessage("Major Code Smell", "S3776:Cognitive Complexity of methods should not be too high", Justification = "Hierarchical fallback resolution logic inherently involves sequential fallback branches.")]
     public async ValueTask<Result<TenantId>> ResolveTenantIdAsync(CancellationToken cancellationToken = default)
@@ -49,51 +50,83 @@ public sealed class BasePathTenantResolutionStrategy : ITenantResolutionStrategy
         if (context is not null)
         {
             var path = context.Request.Path.Value;
-            if (!string.IsNullOrWhiteSpace(path))
+            if (!string.IsNullOrWhiteSpace(path) && TryGetPathSegment(path, _segmentIndex, out var identifier))
             {
-                var segments = path.Split(_pathSeparators, StringSplitOptions.RemoveEmptyEntries);
-                if (segments.Length > _segmentIndex)
+                var tenantStore = _serviceProvider?.GetService<ITenantStore>();
+                if (tenantStore is ITenantLookupStore lookupStore)
                 {
-                    var identifier = segments[_segmentIndex];
-
-                    var tenantStore = _serviceProvider?.GetService<ITenantStore>();
-                    if (tenantStore is ITenantLookupStore lookupStore)
+                    // Stryker disable once boolean : ConfigureAwait is not verifiable
+                    var result = await lookupStore.GetTenantByIdentifierAsync(identifier, cancellationToken).ConfigureAwait(false);
+                    if (result.IsSuccess)
+                    {
+                        return Result<TenantId>.Success(result.Value.Id);
+                    }
+                }
+                else if (tenantStore is not null)
+                {
+                    if (TenantId.TryCreate(identifier, out var tenantId))
                     {
                         // Stryker disable once boolean : ConfigureAwait is not verifiable
-                        var result = await lookupStore.GetTenantByIdentifierAsync(identifier, cancellationToken).ConfigureAwait(false);
+                        var result = await tenantStore.GetTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
                         if (result.IsSuccess)
-                        {
-                            return Result<TenantId>.Success(result.Value.Id);
-                        }
-                    }
-                    else if (tenantStore is not null)
-                    {
-                        if (TenantId.TryCreate(identifier, out var tenantId))
-                        {
-                            // Stryker disable once boolean : ConfigureAwait is not verifiable
-                            var result = await tenantStore.GetTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
-                            if (result.IsSuccess)
-                            {
-                                return Result<TenantId>.Success(tenantId);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (TenantId.TryCreate(identifier, out var tenantId))
                         {
                             return Result<TenantId>.Success(tenantId);
                         }
                     }
-
-                    if (!string.IsNullOrWhiteSpace(identifier))
+                }
+                else
+                {
+                    if (TenantId.TryCreate(identifier, out var tenantId))
                     {
-                        return Result<TenantId>.Failure(TenantErrors.InvalidId(identifier));
+                        return Result<TenantId>.Success(tenantId);
                     }
+                }
+
+                if (!string.IsNullOrWhiteSpace(identifier))
+                {
+                    return Result<TenantId>.Failure(TenantErrors.InvalidId(identifier));
                 }
             }
         }
 
         return Result<TenantId>.Failure(TenantErrors.StrategyFailed(StrategyName, $"Base path segment at index {_segmentIndex} is missing or invalid."));
+    }
+
+    private static bool TryGetPathSegment(string path, int targetIndex, out string segment)
+    {
+        ReadOnlySpan<char> span = path.AsSpan();
+        int currentIndex = 0;
+
+        while (!span.IsEmpty)
+        {
+            while (!span.IsEmpty && span[0] == '/')
+            {
+                span = span.Slice(1);
+            }
+
+            if (span.IsEmpty)
+            {
+                // Stryker disable once statement : Loop termination
+                break;
+            }
+
+            int slashIndex = span.IndexOf('/');
+            // Stryker disable once equality : Positive slice index
+            ReadOnlySpan<char> currentSegment = slashIndex >= 0 ? span.Slice(0, slashIndex) : span;
+
+            if (currentIndex == targetIndex)
+            {
+                segment = currentSegment.ToString();
+                return true;
+            }
+
+            currentIndex++;
+            // Stryker disable once equality : Positive slice index
+            span = slashIndex >= 0 ? span.Slice(slashIndex + 1) : default;
+        }
+
+        // Stryker disable once string, boolean : Fallback empty string and return false
+        segment = string.Empty;
+        return false;
     }
 }

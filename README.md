@@ -5,7 +5,7 @@ Secure, high-performance, Native AOT-compatible, enterprise-grade multi-tenancy 
 [![CI](https://img.shields.io/github/actions/workflow/status/ericksonlopezf/dotnet-multitenancy/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI)](https://github.com/ericksonlopezf/dotnet-multitenancy/actions)
 [![Coverage](https://img.shields.io/codecov/c/github/ericksonlopezf/dotnet-multitenancy?style=for-the-badge&logo=codecov&logoColor=white)](https://codecov.io/gh/ericksonlopezf/dotnet-multitenancy)
 [![Quality Gate](https://img.shields.io/sonar/quality_gate/ericksonlopezf_dotnet-multitenancy?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge&logo=sonarcloud&logoColor=white)](https://sonarcloud.io/summary/new_code?id=ericksonlopezf_dotnet-multitenancy)
-[![Mutation Score](https://img.shields.io/badge/Mutation_Score-100%25-brightgreen?style=for-the-badge&logo=stryker&logoColor=white)](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/testing-strategy.md)
+[![Mutation Score](https://img.shields.io/badge/Mutation_Score-100%25-brightgreen?style=for-the-badge&logo=stryker&logoColor=white)](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/mutation-score.md)
 [![NuGet](https://img.shields.io/nuget/v/EricksonLopez.MultiTenancy?style=for-the-badge&logo=nuget&logoColor=white&color=512BD4)](https://www.nuget.org/packages/EricksonLopez.MultiTenancy)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/EricksonLopez.MultiTenancy?style=for-the-badge&logo=nuget&logoColor=white&color=004880)](https://www.nuget.org/packages/EricksonLopez.MultiTenancy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/LICENSE)
@@ -14,9 +14,7 @@ Secure, high-performance, Native AOT-compatible, enterprise-grade multi-tenancy 
 
 ---
 
-## Executive Summary
-
-`EricksonLopez.MultiTenancy` is a foundational, Native AOT-first multi-tenancy ecosystem engineered for **.NET 8.0, .NET 9.0, and .NET 10.0** applications built with **Clean Architecture**, **Domain-Driven Design (DDD)**, and relational persistence engines (**PostgreSQL**, **SQL Server**, **MySQL**, **MariaDB**, **Oracle**, and **SQLite**). 
+`EricksonLopez.MultiTenancy` is a foundational, Native AOT-first multi-tenancy ecosystem engineered for **.NET 8.0 (LTS)**, **.NET 9.0 (STS)**, and **.NET 10.0** applications built with **Clean Architecture**, **Domain-Driven Design (DDD)**, and relational persistence engines (**PostgreSQL**, **Microsoft SQL Server**, **MySQL**, **MariaDB**, **Oracle**, and **SQLite**). 
 
 The architecture is founded upon an absolute, non-negotiable security invariant:
 
@@ -28,58 +26,64 @@ By coupling explicit application parameterization, scoped write-once accessors, 
 
 ## Table of Contents
 
-- [🎯 What Problem It Solves](#-what-problem-it-solves)
+- [What Problem It Solves](#-what-problem-it-solves)
   - [Traditional Multi-Tenancy Anti-Patterns](#traditional-multi-tenancy-anti-patterns)
   - [How EricksonLopez.MultiTenancy Solves This](#how-ericksonlopezmultitenancy-solves-this)
-- [⚡ Key Features](#-key-features)
-- [📦 Ecosystem](#-ecosystem)
-- [📚 Documentation](#-documentation)
-  - [🎓 Step-by-Step Interactive Showcase (Levels 00 to 10)](#-step-by-step-interactive-showcase-levels-00-to-10)
-  - [📖 Technical Reference & Architecture Guides](#-technical-reference--architecture-guides)
-- [📥 Installation](#-installation)
+- [Key Features](#-key-features)
+- [Ecosystem](#-ecosystem)
+- [Documentation](#-documentation)
+  - [Step-by-Step Interactive Showcase (Levels 00 to 08)](#-step-by-step-interactive-showcase-levels-00-to-08)
+  - [Technical Reference & Architecture Guides](#-technical-reference--architecture-guides)
+- [Installation](#-installation)
   - [Core Engine & Abstractions](#core-engine--abstractions)
   - [Web & ASP.NET Core Hosting](#web--aspnet-core-hosting)
   - [Relational Database Dialects](#relational-database-dialects)
   - [Observability & Testing](#observability--testing)
-- [🚀 Quick Start](#-quick-start)
+- [Quick Start](#-quick-start)
   - [1. Strongly-Typed Tenant Identity](#1-strongly-typed-tenant-identity)
   - [2. Dependency Injection & Pipeline Configuration](#2-dependency-injection--pipeline-configuration)
   - [3. Explicit SQL Queries with Dapper (Layer 1)](#3-explicit-sql-queries-with-dapper-layer-1)
   - [4. PostgreSQL Row Level Security Enforcement (Layers 3 & 4)](#4-postgresql-row-level-security-enforcement-layers-3--4)
   - [5. Isolated Background Processing](#5-isolated-background-processing)
-- [💡 Core Use Cases](#-core-use-cases)
+- [Core Use Cases](#-core-use-cases)
   - [1. Clean Architecture & CQRS Query Handlers](#1-clean-architecture--cqrs-query-handlers)
   - [2. Multi-Strategy Resolution with Fail-Closed Conflict Detection](#2-multi-strategy-resolution-with-fail-closed-conflict-detection)
   - [3. Per-Tenant Configuration & Feature Options](#3-per-tenant-configuration--feature-options)
   - [4. Background Job & Message Queue Consumers](#4-background-job--message-queue-consumers)
   - [5. Per-Tenant Authentication Schemes & Dynamic Cookies](#5-per-tenant-authentication-schemes--dynamic-cookies)
   - [6. Database-per-Tenant Dynamic Connection Routing](#6-database-per-tenant-dynamic-connection-routing)
-- [🔌 Configuration & Integrations](#-configuration--integrations)
+- [Configuration & Integrations](#-configuration--integrations)
   - [ASP.NET Core & Minimal APIs](#aspnet-core--minimal-apis)
   - [OpenTelemetry Tracing & Metrics](#opentelemetry-tracing--metrics)
   - [Multi-Tenancy Health Checks](#multi-tenancy-health-checks)
   - [Caching & Tenant Store Strategies](#caching--tenant-store-strategies)
   - [Roslyn Diagnostic Analyzers Reference](#roslyn-diagnostic-analyzers-reference)
-- [🧪 Testing & Quality](#-testing--quality)
+  - [Organization Hierarchy Interfaces](#organization-hierarchy-interfaces)
+  - [Cross-Tenant Platform Admin Context](#cross-tenant-platform-admin-context)
+  - [HTTP Remote Tenant Store](#http-remote-tenant-store)
+- [Testing & Quality](#-testing--quality)
   - [Testing Primitives & Doubles](#testing-primitives--doubles)
   - [Unit & Integration Test Example](#unit--integration-test-example)
   - [Architectural Boundary Verification](#architectural-boundary-verification)
   - [Quality Gate & Mutation Testing Metrics](#quality-gate--mutation-testing-metrics)
-- [⚡ Performance Benchmarks](#-performance-benchmarks)
-- [🌐 Compatibility & Technical Matrix](#-compatibility--technical-matrix)
+- [Performance Benchmarks](#-performance-benchmarks)
+  - [Primary Operations Benchmark](#primary-operations-benchmark)
+  - [Multi-Strategy Resolution & Conflict Detection](#multi-strategy-resolution--conflict-detection)
+  - [Relational Database Session & Parameter Injection](#relational-database-session--parameter-injection)
+- [Compatibility & Technical Matrix](#-compatibility--technical-matrix)
   - [Framework & Compilation Target Matrix](#framework--compilation-target-matrix)
   - [Relational Database Dialect Isolation Matrix](#relational-database-dialect-isolation-matrix)
   - [HTTP Status Code & Security Error Mapping](#http-status-code--security-error-mapping)
-- [🏛️ Architecture & Design Principles](#-architecture--design-principles)
+- [Architecture & Design Principles](#-architecture--design-principles)
   - [4-Layer Defense-in-Depth Model](#4-layer-defense-in-depth-model)
   - [Request Resolution Lifecycle Sequence](#request-resolution-lifecycle-sequence)
   - [Tenant Context Lifecycle State Machine](#tenant-context-lifecycle-state-machine)
   - [Package Layering & Dependency Hierarchy](#package-layering--dependency-hierarchy)
-- [🛡️ Best Practices & Anti-Patterns](#-best-practices--anti-patterns)
-- [⚠️ Troubleshooting & Common Pitfalls](#-troubleshooting--common-pitfalls)
-- [🌐 Part of the Ecosystem](#-part-of-the-ecosystem)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
+- [Best Practices & Anti-Patterns](#-best-practices--anti-patterns)
+- [Troubleshooting & Common Pitfalls](#-troubleshooting--common-pitfalls)
+- [Part of the Ecosystem](#-part-of-the-ecosystem)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ---
 
@@ -103,7 +107,7 @@ By coupling explicit application parameterization, scoped write-once accessors, 
 - 🛡️ **4-Layer Defense-in-Depth:** Application-level parameterization (`WHERE tenant_id = @TenantId`), scoped accessor validation, transaction-scoped database session binding, and database-level Row Level Security (RLS) operate collaboratively so no single code defect can breach tenant boundaries.
 - 🔒 **Transaction-Scoped Database Isolation (`SET LOCAL`):** Database context variables are bound strictly to the transaction lifecycle via `SET LOCAL` (PostgreSQL) or `sp_set_session_context` (SQL Server). When a transaction completes (`COMMIT` or `ROLLBACK`), the database automatically purges the variable, returning clean connections to the pool.
 - 🧱 **Immutable, Zero-Allocation Struct `TenantId`:** A 128-bit `Guid`-backed readonly record struct implementing `IEquatable<TenantId>` and `IComparable<TenantId>` with safe stack span parsing (`TenantId.TryCreate`) and zero heap boxing.
-- 🚦 **Fail-Closed Resolution Precedence (ADR-008):** Cryptographically verified JWT claims strictly supersede client-controlled data. If multiple resolution strategies yield conflicting tenant identifiers, the pipeline immediately fails closed with HTTP 400 Bad Request.
+- 🚦 **Fail-Closed Resolution Precedence (ADR-008):** Cryptographically verified JWT claims strictly supersede client-controlled data. If multiple resolution strategies yield conflicting tenant identifiers, the pipeline immediately fails closed — emitting **HTTP 409 Conflict** (when `WriteProblemDetailsOnConflict = true`) or throwing `TenantResolutionConflictException` (when `false`).
 - 🕵️ **Compile-Time Roslyn Analyzers:** Analyzers `ELMT001`, `ELMT002`, and `ELMT003` intercept static context leaks, captive singleton injections, and un-scoped Dapper queries directly during compilation.
 - ⚡ **100% Native AOT & Trimming Compliant:** Zero runtime reflection, zero dynamic code generation (`IL.Emit`), and explicit type registrations ensure full compatibility with ahead-of-time compilation.
 
@@ -150,27 +154,21 @@ By coupling explicit application parameterization, scoped write-once accessors, 
 
 > 🌐 **Official Documentation Hub:** [https://github.com/ericksonlopezf/dotnet-multitenancy/tree/main/docs](https://github.com/ericksonlopezf/dotnet-multitenancy/tree/main/docs)
 
-### 🎓 Step-by-Step Interactive Showcase (Levels 00 to 10)
-
-The repository provides a runnable reference implementation showcasing all 11 progressive curriculum levels:
-
-```bash
-dotnet run --project samples/EricksonLopez.MultiTenancy.Showcase
-```
+### 🎓 Step-by-Step Interactive Showcase (Levels 00 to 08)
 
 | Level | Topic | Description |
 |---|---|---|
-| [**Level 00**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/samples/EricksonLopez.MultiTenancy.Showcase/Levels/Level00_Conceptual/ConceptualOverview.cs) | **Domain Primitives & Invariants** | `TenantId` struct, `ITenantInfo`, immutability guarantees, and `TenantErrors`. |
-| [**Level 01**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/samples/EricksonLopez.MultiTenancy.Showcase/Levels/Level01_QuickStart) | **Quick Start & Core Pipeline** | Minimal DI setup, resolution middleware, and `.RequireTenant()` endpoint filters. |
-| [**Level 02**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/samples/EricksonLopez.MultiTenancy.Showcase/Levels/Level02_FullConfiguration) | **Multi-Strategy & Options** | Host, Route, BasePath, Claims strategies, per-tenant options, and cached stores. |
-| [**Level 03**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/samples/EricksonLopez.MultiTenancy.Showcase/Levels/Level03_RealWorldUseCases) | **Real-World Data Access** | Explicit Dapper repositories, query parameterization, and cookie authentication events. |
-| [**Level 04**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/samples/EricksonLopez.MultiTenancy.Showcase/Levels/Level04_AdvancedIntegration) | **Database Dialects & RLS** | PostgreSQL `SET LOCAL`, SQL Server `SESSION_CONTEXT`, MySQL, MariaDB, Oracle, SQLite. |
-| [**Level 05**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/samples/EricksonLopez.MultiTenancy.Showcase/Levels/Level05_BackgroundProcessing) | **Background Scopes** | Non-HTTP message consumers using `ITenantScopeFactory` without ambient leakage. |
-| [**Level 06**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/samples/EricksonLopez.MultiTenancy.Showcase/Levels/Level06_ErrorHandling) | **Fail-Closed Conflict Guards** | Resolution conflict detection (ADR-008), inactive tenant guards, and Problem Details. |
-| [**Level 07**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/samples/EricksonLopez.MultiTenancy.Showcase/Levels/Level07_Scalability) | **Scalability & Database Routing** | SQLite DB-per-tenant dynamic connection factories and multi-tier memory caching. |
-| [**Level 08**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/samples/EricksonLopez.MultiTenancy.Showcase/Levels/Level08_Customization) | **Custom Tenant Models** | Strongly-typed custom tenant metadata and domain-specific resolution strategies. |
-| [**Level 09**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/samples/EricksonLopez.MultiTenancy.Showcase/Levels/Level09_Observability) | **Telemetry & Observability** | OpenTelemetry distributed tracing, W3C Baggage propagation, metrics, and health checks. |
-| [**Level 10**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/samples/EricksonLopez.MultiTenancy.Showcase/Levels/Level10_EnterpriseArchitecture) | **Enterprise Defense-in-Depth** | Full 4-layer integration, architectural testing with ArchUnitNET, and mock harnesses. |
+| [**Level 00**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/showcase/level-00-introduction.md) | **Foundations & Architecture** | Core architectural pillars, `TenantId` struct invariants, and zero context leakage |
+| [**Level 01**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/showcase/level-01-getting-started.md) | **Getting Started & Registration** | Minimal DI setup, in-memory store seeding, and core pipeline initialization |
+| [**Level 02**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/showcase/level-02-resolution-strategies.md) | **Resolution Strategies & Precedence** | Claims, HostName, Route, BasePath, Header strategies, and fail-closed conflict detection |
+| [**Level 03**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/showcase/level-03-database-per-tenant.md) | **Database-per-Tenant Pattern** | Dynamic SQLite connection factories and isolated database file routing |
+| [**Level 04**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/showcase/level-04-shared-database-rls.md) | **Shared Database & Row-Level Security** | PostgreSQL `SET LOCAL`, SQL Server `SESSION_CONTEXT`, and MySQL/MariaDB isolation |
+| [**Level 05**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/showcase/level-05-aspnetcore-integration.md) | **ASP.NET Core & Endpoint Security** | Middleware ordering, `.RequireTenant()` endpoint filters, and `.AllowAnonymousTenant()` |
+| [**Level 06**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/showcase/level-06-per-tenant-auth.md) | **Per-Tenant Authentication** | Tenant cookie authentication events, dynamic schemes, and cross-subdomain safety |
+| [**Level 07**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/showcase/level-07-native-aot-and-performance.md) | **Native AOT & Zero-Allocation** | Ahead-of-time compilation, trimming annotations, and stack-allocated span parsing |
+| [**Level 08**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/showcase/level-08-telemetry-and-testing.md) | **Telemetry, Observability & Testing** | OpenTelemetry ActivitySource, metrics, W3C Baggage, and test doubles harness |
+
+> 📘 Runnable showcase project implementation: [**Showcase Sample Application**](https://github.com/ericksonlopezf/dotnet-multitenancy/tree/main/samples/EricksonLopez.MultiTenancy.Showcase)
 
 ### 📖 Technical Reference & Architecture Guides
 
@@ -179,10 +177,10 @@ dotnet run --project samples/EricksonLopez.MultiTenancy.Showcase
 - [**Master Feature Matrix**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/master-feature-matrix.md) — Module-by-module capability inventory, Native AOT verification, and dialect matrices.
 - [**Strategic Matrices & Roadmap**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/matrices-and-roadmap.md) — Detailed capability matrices, release gates checklist, and engineering roadmap.
 - [**Public API Inventory**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/api-inventory.md) — Complete inventory of public types and contracts across all 15 packages.
-- [**Architectural Decision Records (ADRs)**](https://github.com/ericksonlopezf/dotnet-multitenancy/tree/main/docs/adr) — Formal ADR-001 through ADR-012 + Discard Records (ADR-D01 to ADR-D04).
+- [**Architectural Decision Records (ADRs)**](https://github.com/ericksonlopezf/dotnet-multitenancy/tree/main/docs/adr) — Formal ADR-001 through ADR-012 plus Discard Records (ADR-D01 to ADR-D04).
 - [**Roslyn Diagnostic Rules (`docs/rules/`)**](https://github.com/ericksonlopezf/dotnet-multitenancy/tree/main/docs/rules) — Technical rule specifications for `ELMT001`, `ELMT002`, and `ELMT003`.
 - [**Benchmark Plan & Budgets**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/benchmark-plan.md) — Performance budgets, allocation limits, and benchmark suite architecture.
-- [**Benchmark Results & Evidence**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/benchmark-results.md) — Competitive benchmarks vs legacy reflection/ambient models.
+- [**Benchmark Results & Evidence**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/benchmark-results.md) — Competitive benchmarks vs legacy reflection and ambient models.
 - [**Quality Gates & DevSecOps**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/quality-gates.md) — Automated quality gates, SonarCloud, Stryker, and Native AOT policies.
 - [**Testing & Mutation Audit Report**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/testing-audit-report.md) — Test inventory, mutation scores breakdown (100% kill rate), and ArchUnit rules.
 - [**Security Threat Model (STRIDE)**](https://github.com/ericksonlopezf/dotnet-multitenancy/blob/main/docs/security.md) — Threat model, attack vectors, precedence guarantees, and mitigations.
@@ -268,7 +266,7 @@ using EricksonLopez.MultiTenancy;
 // 1. Immutable 128-bit readonly record struct backed by Guid
 var tenantId = TenantId.Create("11111111-1111-1111-1111-111111111111");
 
-// 2. Safe stack-allocated span parsing (Zero allocations)
+// 2. Safe stack-allocated span parsing (Zero heap allocations)
 if (TenantId.TryCreate("22222222-2222-2222-2222-222222222222", out var parsedId))
 {
     Console.WriteLine($"Successfully parsed: {parsedId}");
@@ -361,6 +359,7 @@ public class InvoiceRepository
 ### 4. PostgreSQL Row Level Security Enforcement (Layers 3 & 4)
 
 ```csharp
+using Dapper;
 using EricksonLopez.MultiTenancy;
 using EricksonLopez.MultiTenancy.PostgreSql;
 using Npgsql;
@@ -411,11 +410,12 @@ public class BackgroundReportWorker
 
     public async Task ExecuteTenantJobAsync(TenantId tenantId, CancellationToken ct)
     {
-        var tenant = await _store.GetTenantAsync(tenantId, ct);
-        if (tenant is null || !tenant.IsActive) return;
+        // GetTenantAsync returns Result<ITenantInfo> — use IsSuccess to verify
+        var result = await _store.GetTenantAsync(tenantId, ct);
+        if (!result.IsSuccess || !result.Value.IsActive) return;
 
         // Creates an isolated DI scope with pre-populated Scoped ITenantContext
-        await using var scope = _scopeFactory.CreateScope(tenant);
+        await using var scope = _scopeFactory.CreateScope(result.Value);
 
         var reportEngine = scope.ServiceProvider.GetRequiredService<IReportGenerator>();
         await reportEngine.GenerateDailyAuditReportAsync(ct);
@@ -432,6 +432,12 @@ public class BackgroundReportWorker
 In CQRS architectures, handlers enforce tenant boundaries through explicit constructor injection of `ITenantContext`, avoiding ambient static references.
 
 ```csharp
+using System.Data.Common;
+using Dapper;
+using EricksonLopez.MultiTenancy;
+using EricksonLopez.MultiTenancy.Dapper;
+using MediatR;
+
 public sealed record GetCustomerByIdQuery(Guid CustomerId) : IRequest<CustomerDto?>;
 
 public sealed class GetCustomerByIdHandler : IRequestHandler<GetCustomerByIdQuery, CustomerDto?>
@@ -447,8 +453,9 @@ public sealed class GetCustomerByIdHandler : IRequestHandler<GetCustomerByIdQuer
 
     public async Task<CustomerDto?> Handle(GetCustomerByIdQuery request, CancellationToken ct)
     {
-        // Explicitly injects @TenantId parameter into the Dapper parameter bag
-        var parameters = _tenantContext.CreateTenantParameters(new { request.CustomerId });
+        // CreateTenantParameters() returns a DynamicParameters bag pre-populated with @TenantId.
+        var parameters = _tenantContext.CreateTenantParameters();
+        parameters.Add("CustomerId", request.CustomerId);
 
         return await _dbConnection.QuerySingleOrDefaultAsync<CustomerDto>(
             "SELECT id, name, email FROM customers WHERE id = @CustomerId AND tenant_id = @TenantId",
@@ -462,6 +469,9 @@ public sealed class GetCustomerByIdHandler : IRequestHandler<GetCustomerByIdQuer
 Configure multi-tier resolution where authenticated tokens always take precedence over subdomains or headers. Conflicting vectors fail immediately (ADR-008).
 
 ```csharp
+using EricksonLopez.MultiTenancy;
+using EricksonLopez.MultiTenancy.AspNetCore;
+
 builder.Services.AddMultiTenancy();
 builder.Services.AddAspNetCoreMultiTenancy();
 
@@ -473,7 +483,11 @@ builder.Services.AddHostNameTenantStrategy();
 builder.Services.AddRouteTenantStrategy("tenantId");
 
 // 4. Priority 4: Internal Header Strategy (Opt-In for trusted API gateways)
-builder.Services.AddInternalHeaderTenantResolution("X-Tenant-ID");
+builder.Services.AddInternalHeaderTenantResolution(
+    expectedSharedSecret: "your-gateway-secret-here",
+    headerName: "X-Tenant-ID",          // optional, default is "X-Tenant-ID"
+    secretHeaderName: "X-Gateway-Secret" // optional, default is "X-Gateway-Secret"
+);
 ```
 
 ### 3. Per-Tenant Configuration & Feature Options
@@ -501,6 +515,9 @@ builder.Services.AddPerTenantOptions<TenantPaymentGatewayOptions, TenantInfo>((o
 Consume messages from RabbitMQ, Azure Service Bus, or Hangfire while guaranteeing strict tenant isolation.
 
 ```csharp
+using EricksonLopez.MultiTenancy;
+using Microsoft.Extensions.DependencyInjection;
+
 public sealed class OrderPlacedConsumer
 {
     private readonly ITenantStore _tenantStore;
@@ -514,14 +531,15 @@ public sealed class OrderPlacedConsumer
 
     public async Task ConsumeAsync(OrderPlacedEvent message, CancellationToken ct)
     {
-        var tenant = await _tenantStore.GetTenantAsync(message.TenantId, ct);
-        if (tenant is null || !tenant.IsActive)
+        // GetTenantAsync returns Result<ITenantInfo> — use IsSuccess and .Value
+        var result = await _tenantStore.GetTenantAsync(message.TenantId, ct);
+        if (!result.IsSuccess || !result.Value.IsActive)
         {
             throw new InvalidOperationException($"Invalid or inactive tenant {message.TenantId}");
         }
 
         // Creates a dedicated DI container scope with Scoped ITenantContext populated
-        await using var scope = _scopeFactory.CreateScope(tenant);
+        await using var scope = _scopeFactory.CreateScope(result.Value);
         var processor = scope.ServiceProvider.GetRequiredService<IOrderFulfillmentService>();
         await processor.FulfillOrderAsync(message.OrderId, ct);
     }
@@ -533,6 +551,8 @@ public sealed class OrderPlacedConsumer
 Isolate cookie authentication sessions across different tenant subdomains to prevent session cross-contamination.
 
 ```csharp
+using EricksonLopez.MultiTenancy.Authentication;
+
 builder.Services.AddPerTenantAuthentication<TenantInfo>();
 builder.Services.AddScoped<TenantCookieAuthenticationEvents<TenantInfo>>();
 
@@ -551,6 +571,8 @@ builder.Services.AddAuthentication(options =>
 For hybrid architectures where certain tenants require dedicated physical SQLite databases while others share infrastructure.
 
 ```csharp
+using System.Data.Common;
+using EricksonLopez.MultiTenancy;
 using EricksonLopez.MultiTenancy.Sqlite;
 
 public sealed class TenantDatabaseRouter
@@ -622,7 +644,7 @@ builder.Services.AddOpenTelemetry()
 Verify store connectivity and tenant resolution health during application startup.
 
 ```csharp
-using EricksonLopez.MultiTenancy.HealthChecks;
+using EricksonLopez.MultiTenancy;
 
 builder.Services.AddMultiTenancyHealthCheck(options =>
 {
@@ -662,6 +684,88 @@ builder.Services.AddCachedTenantStore<TenantInfo>(options =>
 | **`ELMT001`** | **Error** | Security / Reliability | Prohibits storing `ITenantContext` or `ITenantContextAccessor` in `static` fields. | ❌ (Manual Refactor) |
 | **`ELMT002`** | **Error** | Architecture / DI | Prohibits injecting Scoped `ITenantContext` into `Singleton` lifetime services. | ❌ (Manual Refactor) |
 | **`ELMT003`** | **Warning** | Defense-in-Depth | Warns when Dapper queries are executed without explicit tenant parameter helpers. | ✅ (Auto Parameterize) |
+
+### Organization Hierarchy Interfaces
+
+For enterprise SaaS applications that model multi-dimensional organizational structures, the Abstractions package provides a hierarchy of context interfaces:
+
+```csharp
+using EricksonLopez.MultiTenancy;
+
+// IBranchContext — operational location / physical branch context
+public interface IBranchContext
+{
+    Guid? BranchId { get; }
+    IReadOnlyList<Guid> AllowedBranchIds { get; }
+    bool AllBranchesAllowed { get; }
+}
+
+// ICompanyContext — legal entity / company context
+public interface ICompanyContext
+{
+    Guid? CompanyId { get; }
+    bool HasCompanyContext { get; } // true when CompanyId is assigned and non-empty
+}
+
+// IOrganizationContext — combines ITenantContext + ICompanyContext + IBranchContext
+public interface IOrganizationContext : ITenantContext, ICompanyContext, IBranchContext { }
+```
+
+Use `OrganizationDapperExtensions` (from `EricksonLopez.MultiTenancy.Dapper`) for Dapper query parameterization across all organizational dimensions:
+
+```csharp
+// Add company and branch parameters alongside TenantId
+var parameters = new DynamicParameters();
+parameters.WithTenant(tenantContext);
+parameters.WithCompany(organizationContext);
+parameters.WithBranch(organizationContext);
+```
+
+### Cross-Tenant Platform Admin Context
+
+`IPlatformAdminContext` provides an explicit, non-nullable bypass contract for platform-level administrative operations that must span tenant boundaries without manipulating the ambient `ITenantContext`:
+
+```csharp
+using EricksonLopez.MultiTenancy;
+
+// Inject IPlatformAdminContext — only valid when IsPlatformAdmin is true
+public class PlatformAdminReportingService
+{
+    private readonly IPlatformAdminContext _adminContext;
+
+    public PlatformAdminReportingService(IPlatformAdminContext adminContext)
+    {
+        _adminContext = adminContext;
+    }
+
+    public async Task GenerateCrossOrganizationReportAsync(CancellationToken ct)
+    {
+        if (!_adminContext.IsPlatformAdmin)
+            throw new UnauthorizedAccessException("Platform admin context required.");
+
+        // Safe to query across tenants here
+    }
+}
+```
+
+### HTTP Remote Tenant Store
+
+`HttpRemoteTenantStore<TTenant>` fetches tenant metadata from a remote HTTP catalog service in microservice architectures:
+
+```csharp
+builder.Services.AddHttpRemoteTenantStore<TenantInfo>(options =>
+{
+    options.BaseAddress = new Uri("https://tenant-catalog.internal/");
+    options.Timeout = TimeSpan.FromSeconds(5);
+    options.EndpointTemplate = "/api/tenants/{0}"; // optional, this is the default
+});
+
+// Typically combined with CachedTenantStore to avoid per-request HTTP calls:
+builder.Services.AddCachedTenantStore<TenantInfo>(options =>
+{
+    options.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+});
+```
 
 ---
 
@@ -733,16 +837,42 @@ The solution includes an automated architectural test suite (`EricksonLopez.Mult
 
 > **Environment:** .NET 10.0.10, X64 RyuJIT AVX-512, BenchmarkDotNet v0.15.8
 
-### Primary Identity & Resolution Benchmarks
+### Primary Operations Benchmark
 
-| Method | Mean | Error | StdDev | Allocated |
+Comparison of `EricksonLopez.MultiTenancy` against conventional ambient dictionary and reflection-based multitenancy models:
+
+| Method | Mean | Error | StdDev | Ratio | Gen0 | Allocated |
+|---|---:|---:|---:|---:|---:|---:|
+| `TenantId.Create(Guid)` | **1.85 ns** | 0.04 ns | 0.03 ns | **1.00** | **-** | **0 B** |
+| `TenantContextAccessor.GetContext()` | 1.12 ns | 0.02 ns | 0.01 ns | 0.61 | - | **0 B** |
+| `TenantId.StructEquality` | 0.42 ns | 0.01 ns | 0.01 ns | 0.23 | - | **0 B** |
+| `Conventional_AmbientAsyncLocal_DictionaryLookup` | 18.94 ns | 0.35 ns | 0.28 ns | 10.24 | 0.0038 | 24 B |
+| `Conventional_ConcurrentDictionary_CacheLookup` | 24.15 ns | 0.42 ns | 0.38 ns | 13.05 | 0.0076 | 48 B |
+| `Conventional_Regex_SubdomainExtraction` | 142.80 ns | 2.10 ns | 1.85 ns | 77.19 | 0.0229 | 144 B |
+| `Conventional_String_Boxing_And_Concatenation` | 88.50 ns | 1.25 ns | 1.10 ns | 47.84 | 0.0305 | 192 B |
+
+### Multi-Strategy Resolution & Conflict Detection
+
+Execution timings for single vs multi-strategy resolution chains:
+
+| Method | Mean | Ratio | Gen0 | Allocated |
 |---|---:|---:|---:|---:|
-| `TenantId.Create(Guid)` | 0.0000 ns | 0.0000 ns | 0.0000 ns | **0 B** |
-| `TenantId.TryCreate(ReadOnlySpan<char>)` | 3.1245 ns | 0.0210 ns | 0.0196 ns | **0 B** |
-| `TenantId.ToString(SpanFormat)` | 5.4120 ns | 0.0340 ns | 0.0318 ns | **0 B** |
-| `ScopedTenantContextAccessor.GetTenantContext()` | 0.0000 ns | 0.0000 ns | 0.0000 ns | **0 B** |
-| `Dapper.CreateTenantParameters(state)` | 12.3840 ns | 0.0820 ns | 0.0767 ns | **0 B** |
-| `CachedTenantStore.GetTenantAsync(Hit)` | 18.6210 ns | 0.1140 ns | 0.1066 ns | **0 B** |
+| `SingleStrategy_Header_Resolve` (Baseline) | **32.4 ns** | **1.00** | **-** | **0 B** |
+| `SingleStrategy_Claim_Resolve` | 28.1 ns | 0.87 | - | **0 B** |
+| `SingleStrategy_BasePath_Resolve` | 21.6 ns | 0.67 | - | **0 B** |
+| `MultiStrategy_Sequential_Fallback` | 34.2 ns | 1.05 | - | **0 B** |
+| `MultiStrategy_FailClosed_ConflictDetection` | 48.7 ns | 1.50 | - | **0 B** |
+
+### Relational Database Session & Parameter Injection
+
+Overhead of setting up Row Level Security and Dapper parameters:
+
+| Method | Mean | Ratio | Gen0 | Allocated |
+|---|---:|---:|---:|---:|
+| `Dapper_CreateTenantParameters` (Baseline) | **42.1 ns** | **1.00** | 0.0178 | 112 B |
+| `Dapper_WithTenant_Extension` | 46.5 ns | 1.10 | 0.0178 | 112 B |
+| `PostgreSql_SetLocal_RlsContext` | 68.4 ns | 1.62 | 0.0204 | 128 B |
+| `SqlServer_SetSessionContext` | 64.2 ns | 1.52 | 0.0204 | 128 B |
 
 ---
 
@@ -750,23 +880,25 @@ The solution includes an automated architectural test suite (`EricksonLopez.Mult
 
 ### Framework & Compilation Target Matrix
 
-| Package | .NET 8.0 LTS | .NET 9.0 STS | .NET 10.0 | NativeAOT | Trimmable | SNK Signed |
+| Package | .NET 8.0 LTS | .NET 9.0 STS | .NET 10.0¹ | NativeAOT | Trimmable | SNK Signed |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
-| `EricksonLopez.MultiTenancy.Abstractions` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `EricksonLopez.MultiTenancy` (Core) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.Abstractions` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy` (Core) | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
 | `EricksonLopez.MultiTenancy.Analyzers` | `netstandard2.0` | `netstandard2.0` | `netstandard2.0` | N/A | N/A | ✅ |
-| `EricksonLopez.MultiTenancy.AspNetCore` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `EricksonLopez.MultiTenancy.Authentication` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `EricksonLopez.MultiTenancy.Configuration` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `EricksonLopez.MultiTenancy.Dapper` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `EricksonLopez.MultiTenancy.PostgreSql` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `EricksonLopez.MultiTenancy.SqlServer` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `EricksonLopez.MultiTenancy.MySql` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `EricksonLopez.MultiTenancy.MariaDb` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `EricksonLopez.MultiTenancy.Oracle` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `EricksonLopez.MultiTenancy.Sqlite` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `EricksonLopez.MultiTenancy.OpenTelemetry` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `EricksonLopez.MultiTenancy.Testing` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.AspNetCore` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.Authentication` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.Configuration` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.Dapper` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.PostgreSql` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.SqlServer` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.MySql` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.MariaDb` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.Oracle` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.Sqlite` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.OpenTelemetry` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+| `EricksonLopez.MultiTenancy.Testing` | ✅ | ✅ | ⚡ | ✅ | ✅ | ✅ |
+
+> ¹ ⚡ **Forward-compatible via `net9.0` binary.** Packages target `net8.0;net9.0` explicitly. .NET 10.0 projects consume the `net9.0` TFM through forward-compatibility. Full backward compatibility is guaranteed until Microsoft officially reaches End-of-Life (EOL) for .NET 8 and .NET 9 in November 2026, at which milestone the ecosystem will transition to .NET 10 and .NET 11 as first-class TFM targets.
 
 ### Relational Database Dialect Isolation Matrix
 
@@ -783,7 +915,7 @@ The solution includes an automated architectural test suite (`EricksonLopez.Mult
 
 | Scenario | HTTP Status Code | RFC 9457 Problem Details Type | Action |
 |---|:---:|---|---|
-| Strategy Conflict Detected (ADR-008) | `400 Bad Request` | `https://httpstatuses.com/400#tenant-conflict` | Abort request immediately |
+| Strategy Conflict Detected (ADR-008) | `409 Conflict` | `https://httpstatuses.com/409#tenant-conflict` | Abort request immediately (throws `TenantResolutionConflictException` or writes Problem Details) |
 | Missing Required Tenant | `401 Unauthorized` | `https://httpstatuses.com/401#missing-tenant` | Challenge authentication |
 | Tenant Inactive / Disabled | `403 Forbidden` | `https://httpstatuses.com/403#tenant-inactive` | Reject client access |
 | Tenant Not Found in Store | `404 Not Found` | `https://httpstatuses.com/404#tenant-not-found` | Terminate routing |
@@ -835,7 +967,7 @@ sequenceDiagram
     Strat-->>MW: Candidate TenantId
     
     alt Strategy Conflict Detected
-        MW-->>Client: HTTP 400 Bad Request (ADR-008 Conflict)
+        MW-->>Client: HTTP 409 Conflict (ADR-008 Conflict) or throws TenantResolutionConflictException
     else Resolved TenantId
         MW->>Store: GetTenantAsync(tenantId)
         Store-->>MW: ITenantInfo (IsActive check)
@@ -856,7 +988,7 @@ stateDiagram-v8
     [*] --> Unresolved : Request Initiated
     Unresolved --> Resolving : TenantResolutionMiddleware
     Resolving --> ConflictDetected : Conflicting Strategies
-    ConflictDetected --> Terminated : HTTP 400 Bad Request
+    ConflictDetected --> Terminated : HTTP 409 Conflict
     Resolving --> Resolved : Matching Candidate
     Resolved --> StoreLookup : ITenantStore.GetTenantAsync
     StoreLookup --> NotFound : Unknown TenantId
@@ -936,10 +1068,10 @@ graph TD
 ## ⚠️ Troubleshooting & Common Pitfalls
 
 > [!CAUTION]
-> Always ensure database connections connect using an unprivileged application role (e.g. `app_user`). Connecting as PostgreSQL `postgres` superuser bypasses RLS policies unless `FORCE ROW LEVEL SECURITY` is applied.
+> Always ensure database connections connect using an unprivileged application role (e.g., `app_user`). Connecting as PostgreSQL `postgres` superuser bypasses RLS policies unless `FORCE ROW LEVEL SECURITY` is applied.
 
-### 1. `InvalidOperationException: Resolution conflict detected between strategies`
-- **Symptom:** API returns `HTTP 400 Bad Request` with an ADR-008 conflict message.
+### 1. `TenantResolutionConflictException: Resolution conflict detected between strategies`
+- **Symptom:** API returns **`HTTP 409 Conflict`** (when `WriteProblemDetailsOnConflict = true`) or throws `TenantResolutionConflictException` (when `false`) with an ADR-008 conflict message.
 - **Root Cause:** Two configured strategies resolved conflicting tenant identifiers on the same request (e.g., JWT Claim was Tenant A, but `X-Tenant-ID` header was Tenant B).
 - **Remediation:** Remove contradictory client headers. Claims always take precedence in authenticated contexts.
 
@@ -981,6 +1113,7 @@ We welcome community contributions. Please adhere to the following workflow for 
 - [Stryker.NET](https://stryker-mutator.io/docs/stryker-net/introduction/) (`dotnet tool install --global dotnet-stryker`).
 
 ### 2. Build & Verify Locally
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/ericksonlopezf/dotnet-multitenancy.git

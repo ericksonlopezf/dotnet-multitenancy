@@ -2,6 +2,8 @@
 
 This directory contains the formal Architectural Decision Records (ADRs) and Systematic Discard Records governing the `EricksonLopez.MultiTenancy` ecosystem.
 
+> **Target Frameworks**: Production libraries explicitly target `.NET 8.0 (LTS)` and `.NET 9.0` (STS), with validated full compatibility for `.NET 10.0 Native AOT` compilation.
+
 ---
 
 ## 1. Accepted Architectural Decisions

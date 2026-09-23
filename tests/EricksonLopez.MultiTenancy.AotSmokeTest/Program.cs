@@ -65,6 +65,29 @@ Assert(notFoundError.Code.Length > 0, "TenantErrors.NotFound has code");
 var unresolvedError = TenantErrors.Unresolved;
 Assert(unresolvedError.Code.Length > 0, "TenantErrors.Unresolved has code");
 
+// ── 4. PlatformAdminContext & ScopedTenantContextAccessor ─────────────────
+Console.WriteLine("\n--- 4. PlatformAdminContext & Accessor ---");
+var adminCtx = new PlatformAdminContext(isPlatformAdmin: true, auditReason: "AOT-Validation");
+Assert(adminCtx.IsPlatformAdmin, "PlatformAdminContext.IsPlatformAdmin is true");
+Assert(adminCtx.AuditReason == "AOT-Validation", "PlatformAdminContext.AuditReason matches constructor");
+
+var noneCtx = PlatformAdminContext.None;
+Assert(!noneCtx.IsPlatformAdmin, "PlatformAdminContext.None.IsPlatformAdmin is false");
+
+var accessor = new ScopedTenantContextAccessor();
+Assert(accessor.TenantContext is null, "Initial ScopedTenantContextAccessor has null context");
+accessor.TenantContext = context;
+Assert(accessor.TenantContext is not null && accessor.TenantContext.IsResolved, "ScopedTenantContextAccessor holds context");
+try
+{
+    accessor.TenantContext = context;
+    Assert(false, "Double assignment should throw InvalidOperationException");
+}
+catch (InvalidOperationException)
+{
+    Assert(true, "Double assignment throws InvalidOperationException");
+}
+
 Console.WriteLine("\n=================================================");
 Console.WriteLine($" ALL {passedTests} NATIVE AOT SUITE TESTS PASSED SUCCESSFULLY! ");
 Console.WriteLine("=== AOT Validator: OK ===");

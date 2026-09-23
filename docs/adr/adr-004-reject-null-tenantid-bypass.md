@@ -3,6 +3,9 @@
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 Using `TenantId.Empty` or `null` TenantId as a convention to indicate "platform admin context" or "no tenant filter" was considered. This pattern appears in several multi-tenant frameworks and ORMs.
 

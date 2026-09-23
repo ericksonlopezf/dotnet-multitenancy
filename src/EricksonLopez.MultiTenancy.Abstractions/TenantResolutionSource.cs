@@ -41,7 +41,7 @@ public enum TenantResolutionSource
     ExplicitScope = 5,
 
     /// <summary>
-    /// Specifies that an elevated platform administration context was used for cross-tenant operations.
+    /// Specifies that an elevated platform administration context performed cross-tenant operations.
     /// </summary>
     PlatformAdmin = 6,
 

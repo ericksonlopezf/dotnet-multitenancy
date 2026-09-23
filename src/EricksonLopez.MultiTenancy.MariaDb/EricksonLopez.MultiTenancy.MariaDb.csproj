@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Description>MariaDB multi-tenant isolation and session variable integration for EricksonLopez.MultiTenancy. Provides transaction and connection-level tenant isolation for MariaDB using MySqlConnector and Dapper.</Description>
-    <PackageTags>$(CommonPackageTags);mariadb;session-variables;database-isolation;dapper;sql;native-aot</PackageTags>
+    <PackageTags>$(CommonPackageTags);mariadb;mysqlconnector;session-variables;database-isolation;dapper;sql;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +13,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EricksonLopez.MultiTenancy.Abstractions\EricksonLopez.MultiTenancy.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EricksonLopez.MultiTenancy.MariaDb.Tests" />
   </ItemGroup>
 
 </Project>

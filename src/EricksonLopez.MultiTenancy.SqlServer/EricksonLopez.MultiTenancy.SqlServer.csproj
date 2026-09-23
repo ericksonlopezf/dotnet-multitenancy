@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Description>Microsoft SQL Server Row-Level Security (RLS) and SESSION_CONTEXT integration for EricksonLopez.MultiTenancy. Provides session-context and transaction-scoped tenant isolation via sp_set_session_context.</Description>
-    <PackageTags>$(CommonPackageTags);sqlserver;mssql;session-context;row-level-security;database-isolation;dapper;sql</PackageTags>
+    <PackageTags>$(CommonPackageTags);sqlserver;mssql;session-context;rls;row-level-security;database-isolation;dapper;sql</PackageTags>
     <!-- Microsoft.Data.SqlClient 5.x has partial NativeAOT support. SNI and some authentication flows are not fully AOT-safe. -->
     <IsAotCompatible>false</IsAotCompatible>
     <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
@@ -17,6 +17,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EricksonLopez.MultiTenancy.Abstractions\EricksonLopez.MultiTenancy.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EricksonLopez.MultiTenancy.SqlServer.Tests" />
   </ItemGroup>
 
 </Project>

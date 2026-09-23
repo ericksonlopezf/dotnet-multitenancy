@@ -3,6 +3,9 @@
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 In distributed multi-tenant microservices, tracing, logging, and metrics must be partitioned by tenant identity to allow site reliability engineers (SREs) and security teams to monitor tenant-specific SLA compliance, latency distributions, and isolate noisy neighbors.
 

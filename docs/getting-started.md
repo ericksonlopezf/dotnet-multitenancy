@@ -129,9 +129,12 @@ public class OrderService
         // Atomically opens connection and sets SET LOCAL app.current_tenant_id = :tenantId
         await using var transaction = await _connection.BeginTenantTransactionAsync(_tenantContext);
 
+        var parameters = new DynamicParameters(order);
+        parameters.WithTenant(_tenantContext);
+
         await _connection.ExecuteAsync(
             "INSERT INTO orders (id, tenant_id, amount) VALUES (@Id, @TenantId, @Amount)",
-            _tenantContext.CreateTenantParameters(order),
+            parameters,
             transaction: transaction);
 
         await transaction.CommitAsync();

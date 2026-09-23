@@ -121,5 +121,32 @@ public class CachedTenantStoreExtensionsTests
         var resolvedStore = scope.ServiceProvider.GetRequiredService<ITenantStore<DummyTenantInfo>>();
         resolvedStore.Should().BeOfType<CachedTenantStore<DummyTenantInfo>>();
     }
+
+    public interface IFakeLookupStore : ITenantStore<DummyTenantInfo>, ITenantLookupStore<DummyTenantInfo>, ITenantLookupStore
+    {
+    }
+
+    [Fact]
+    public void AddCachedTenantStore_ReplacesLookupStoreDescriptors_WhenRegistered()
+    {
+        var services = new ServiceCollection();
+        var innerStore = Substitute.For<IFakeLookupStore>();
+        services.AddSingleton<ITenantStore<DummyTenantInfo>>(innerStore);
+        services.AddSingleton<ITenantLookupStore<DummyTenantInfo>>(innerStore);
+        services.AddSingleton<ITenantLookupStore>(innerStore);
+        services.AddMemoryCache();
+
+        services.AddCachedTenantStore<DummyTenantInfo>();
+
+        var sp = services.BuildServiceProvider();
+        var rootStore = sp.GetRequiredService<ITenantStore<DummyTenantInfo>>();
+        var typedLookup = sp.GetRequiredService<ITenantLookupStore<DummyTenantInfo>>();
+        var untypedLookup = sp.GetRequiredService<ITenantLookupStore>();
+
+        rootStore.Should().BeOfType<CachedTenantStore<DummyTenantInfo>>();
+        typedLookup.Should().BeSameAs(rootStore);
+        untypedLookup.Should().BeSameAs(rootStore);
+    }
 }
+
 

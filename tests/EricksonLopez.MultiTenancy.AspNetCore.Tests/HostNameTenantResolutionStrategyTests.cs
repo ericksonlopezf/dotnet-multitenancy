@@ -254,4 +254,110 @@ public class HostNameTenantResolutionStrategyTests
 
         result.IsFailure.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task ResolveTenantIdAsync_LocalhostSubdomain_ResolvesCorrectly()
+    {
+        var tenant = new TenantInfo { Id = AlphaTenantId, Name = "acme" };
+        var lookupStore = Substitute.For<ITenantStore, ITenantLookupStore>();
+        ((ITenantLookupStore)lookupStore).GetTenantByIdentifierAsync("acme", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(Result.Result<ITenantInfo>.Success(tenant)));
+
+        var services = new ServiceCollection();
+        services.AddSingleton((ITenantStore)lookupStore);
+        var provider = services.BuildServiceProvider();
+
+        var context = new DefaultHttpContext();
+        context.Request.Host = new HostString("acme.localhost:5000");
+
+        var accessor = Substitute.For<IHttpContextAccessor>();
+        accessor.HttpContext.Returns(context);
+
+        var strategy = new HostNameTenantResolutionStrategy(accessor, provider);
+        var result = await strategy.ResolveTenantIdAsync();
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(AlphaTenantId);
+    }
+
+    [Theory]
+    [InlineData("127.0.0.1")]
+    [InlineData("192.168.1.100")]
+    [InlineData("10.0.0.1")]
+    public async Task ResolveTenantIdAsync_IpAddressHost_ReturnsFailure(string ipHost)
+    {
+        var services = new ServiceCollection().BuildServiceProvider();
+
+        var context = new DefaultHttpContext();
+        context.Request.Host = new HostString(ipHost);
+
+        var accessor = Substitute.For<IHttpContextAccessor>();
+        accessor.HttpContext.Returns(context);
+
+        var strategy = new HostNameTenantResolutionStrategy(accessor, services);
+        var result = await strategy.ResolveTenantIdAsync();
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Tenant.ResolutionFailed");
+    }
+
+    [Fact]
+    public async Task ResolveTenantIdAsync_WithBaseDomain_MultiLevelSubdomain_ResolvesCorrectly()
+    {
+        var tenant = new TenantInfo { Id = AlphaTenantId, Name = "acme" };
+        var lookupStore = Substitute.For<ITenantStore, ITenantLookupStore>();
+        ((ITenantLookupStore)lookupStore).GetTenantByIdentifierAsync("acme", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(Result.Result<ITenantInfo>.Success(tenant)));
+
+        var services = new ServiceCollection();
+        services.AddSingleton((ITenantStore)lookupStore);
+        var provider = services.BuildServiceProvider();
+
+        var context = new DefaultHttpContext();
+        context.Request.Host = new HostString("api.acme.platform.com:443");
+
+        var accessor = Substitute.For<IHttpContextAccessor>();
+        accessor.HttpContext.Returns(context);
+
+        var options = Microsoft.Extensions.Options.Options.Create(new EricksonLopez.MultiTenancy.AspNetCore.Options.HostNameTenantResolutionStrategyOptions
+        {
+            BaseDomain = "platform.com"
+        });
+
+        var strategy = new HostNameTenantResolutionStrategy(accessor, provider, options);
+        var result = await strategy.ResolveTenantIdAsync();
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(AlphaTenantId);
+    }
+
+    [Fact]
+    public async Task ResolveTenantIdAsync_WithExtractionPattern_ResolvesCorrectly()
+    {
+        var tenant = new TenantInfo { Id = AlphaTenantId, Name = "acme" };
+        var lookupStore = Substitute.For<ITenantStore, ITenantLookupStore>();
+        ((ITenantLookupStore)lookupStore).GetTenantByIdentifierAsync("acme", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(Result.Result<ITenantInfo>.Success(tenant)));
+
+        var services = new ServiceCollection();
+        services.AddSingleton((ITenantStore)lookupStore);
+        var provider = services.BuildServiceProvider();
+
+        var context = new DefaultHttpContext();
+        context.Request.Host = new HostString("service-acme-eu.cloud.io");
+
+        var accessor = Substitute.For<IHttpContextAccessor>();
+        accessor.HttpContext.Returns(context);
+
+        var options = Microsoft.Extensions.Options.Options.Create(new EricksonLopez.MultiTenancy.AspNetCore.Options.HostNameTenantResolutionStrategyOptions
+        {
+            ExtractionPattern = @"^service-(?<tenant>[a-z0-9]+)-eu\.cloud\.io$"
+        });
+
+        var strategy = new HostNameTenantResolutionStrategy(accessor, provider, options);
+        var result = await strategy.ResolveTenantIdAsync();
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(AlphaTenantId);
+    }
 }

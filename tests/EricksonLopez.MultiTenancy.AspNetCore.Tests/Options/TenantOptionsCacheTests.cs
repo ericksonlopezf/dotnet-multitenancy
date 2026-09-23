@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using EricksonLopez.MultiTenancy.AspNetCore.Options;
+using EricksonLopez.MultiTenancy.Testing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -280,4 +281,157 @@ public class TenantOptionsCacheTests
         optSchemaB.Value.Should().Be("ValB");
         optDefault.Value.Should().Be("ValDefault");
     }
+
+    [Fact]
+    public void GetOrAdd_ExceedsCapacity_EvictsLeastRecentlyUsedNotOldestInserted()
+    {
+        var tenantAccessor = Substitute.For<ITenantContextAccessor>();
+        var services = new ServiceCollection();
+        services.AddSingleton(tenantAccessor);
+        var httpContext = new DefaultHttpContext { RequestServices = services.BuildServiceProvider() };
+        var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        httpContextAccessor.HttpContext.Returns(httpContext);
+
+        var cache = new TenantOptionsCache<TestOptions, TenantInfo>(httpContextAccessor, maxCapacity: 2);
+
+        var tenant1 = new TenantInfo { Id = TenantId.NewId() };
+        var ctx1 = Substitute.For<ITenantContext<TenantInfo>>();
+        ctx1.IsResolved.Returns(true);
+        ctx1.RequiredTenant.Returns(tenant1);
+
+        var tenant2 = new TenantInfo { Id = TenantId.NewId() };
+        var ctx2 = Substitute.For<ITenantContext<TenantInfo>>();
+        ctx2.IsResolved.Returns(true);
+        ctx2.RequiredTenant.Returns(tenant2);
+
+        var tenant3 = new TenantInfo { Id = TenantId.NewId() };
+        var ctx3 = Substitute.For<ITenantContext<TenantInfo>>();
+        ctx3.IsResolved.Returns(true);
+        ctx3.RequiredTenant.Returns(tenant3);
+
+        // 1. Add Tenant 1
+        tenantAccessor.TenantContext.Returns(ctx1);
+        cache.GetOrAdd("key", () => new TestOptions { Value = "Val1" });
+
+        // 2. Add Tenant 2
+        tenantAccessor.TenantContext.Returns(ctx2);
+        cache.GetOrAdd("key", () => new TestOptions { Value = "Val2" });
+
+        // 3. Access Tenant 1 again -> Promotes Tenant 1 to MRU!
+        tenantAccessor.TenantContext.Returns(ctx1);
+        cache.GetOrAdd("key", () => new TestOptions { Value = "Val1-New" });
+
+        // 4. Add Tenant 3 -> Capacity exceeded, should evict Tenant 2!
+        tenantAccessor.TenantContext.Returns(ctx3);
+        cache.GetOrAdd("key", () => new TestOptions { Value = "Val3" });
+
+        // 5. Tenant 1 should still be cached
+        tenantAccessor.TenantContext.Returns(ctx1);
+        var t1 = cache.GetOrAdd("key", () => new TestOptions { Value = "Val1-Recreated" });
+        t1.Value.Should().Be("Val1");
+
+        // 6. Tenant 2 should have been evicted and therefore re-created
+        tenantAccessor.TenantContext.Returns(ctx2);
+        var t2 = cache.GetOrAdd("key", () => new TestOptions { Value = "Val2-Recreated" });
+        t2.Value.Should().Be("Val2-Recreated");
+    }
+
+    [Fact]
+    public void GetOrAdd_ThrowOnMissingTenantTrue_WhenUnresolved_ThrowsTenantNotFoundException()
+    {
+        var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        httpContextAccessor.HttpContext.Returns((HttpContext?)null);
+
+        var cache = new TenantOptionsCache<TestOptions, TenantInfo>(httpContextAccessor, maxCapacity: 10000, throwOnMissingTenant: true);
+
+        var act = () => cache.GetOrAdd("custom", () => new TestOptions { Value = "Test" });
+
+        act.Should().Throw<TenantNotFoundException>()
+            .WithMessage("*strict tenant resolution is enabled*");
+    }
+
+    [Fact]
+    public void GetOrAdd_WithTenantOptionsCacheOptions_StrictResolution_ThrowsTenantNotFoundException()
+    {
+        var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        httpContextAccessor.HttpContext.Returns((HttpContext?)null);
+
+        var options = Microsoft.Extensions.Options.Options.Create(new TenantOptionsCacheOptions
+        {
+            ThrowOnMissingTenant = true,
+            MaxCapacity = 50
+        });
+
+        var cache = new TenantOptionsCache<TestOptions, TenantInfo>(httpContextAccessor, options);
+
+        var act = () => cache.GetOrAdd("custom", () => new TestOptions { Value = "Test" });
+
+        act.Should().Throw<TenantNotFoundException>();
+    }
+
+    [Fact]
+    public void AddPerTenantOptions_WithCacheOptionsConfig_ConfiguresOptionsInDI()
+    {
+        var services = new ServiceCollection();
+        services.AddHttpContextAccessor();
+        services.AddPerTenantOptions<TestOptions, TenantInfo>(cacheOpts =>
+        {
+            cacheOpts.ThrowOnMissingTenant = true;
+            cacheOpts.MaxCapacity = 42;
+        });
+
+        var sp = services.BuildServiceProvider();
+        var cache = sp.GetRequiredService<IOptionsMonitorCache<TestOptions>>();
+
+        cache.Should().BeOfType<TenantOptionsCache<TestOptions, TenantInfo>>();
+        var cacheOpts = sp.GetRequiredService<IOptions<TenantOptionsCacheOptions>>().Value;
+        cacheOpts.ThrowOnMissingTenant.Should().BeTrue();
+        cacheOpts.MaxCapacity.Should().Be(42);
+    }
+
+    [Fact]
+    public void AddPerTenantOptions_WithConfigureOptions_ConfiguresPerTenant()
+    {
+        var services = new ServiceCollection();
+        services.AddHttpContextAccessor();
+        var tenant = new TenantInfo(TenantId.NewId(), "TenantAcme");
+        var context = new TestTenantContext(tenant);
+        services.AddSingleton<ITenantContextAccessor>(context);
+
+        services.AddPerTenantOptions<TestOptions, TenantInfo>((options, t) =>
+        {
+            options.Value = t.Name;
+        });
+
+        var sp = services.BuildServiceProvider();
+        var configureOptions = sp.GetRequiredService<IConfigureOptions<TestOptions>>();
+        var targetOptions = new TestOptions();
+        configureOptions.Configure(targetOptions);
+
+        targetOptions.Value.Should().Be("TenantAcme");
+    }
+
+    [Fact]
+    public void AddPerTenantOptions_WithCacheOptionsAndConfigureOptions_ConfiguresBoth()
+    {
+        var services = new ServiceCollection();
+        services.AddHttpContextAccessor();
+        var tenant = new TenantInfo(TenantId.NewId(), "TenantAcme");
+        var context = new TestTenantContext(tenant);
+        services.AddSingleton<ITenantContextAccessor>(context);
+
+        services.AddPerTenantOptions<TestOptions, TenantInfo>(
+            cacheOpts => { cacheOpts.MaxCapacity = 100; },
+            (options, t) => { options.Value = t.Name; });
+
+        var sp = services.BuildServiceProvider();
+        var cacheOpts = sp.GetRequiredService<IOptions<TenantOptionsCacheOptions>>().Value;
+        cacheOpts.MaxCapacity.Should().Be(100);
+
+        var configureOptions = sp.GetRequiredService<IConfigureOptions<TestOptions>>();
+        var targetOptions = new TestOptions();
+        configureOptions.Configure(targetOptions);
+        targetOptions.Value.Should().Be("TenantAcme");
+    }
 }
+

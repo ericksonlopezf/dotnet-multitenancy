@@ -33,8 +33,20 @@ public class DefaultTenantScopeFactoryTests
 
     private class FakeScopeFactory : IServiceScopeFactory
     {
-        public FakeScope ScopeToReturn { get; } = new FakeScope();
-        public IServiceScope CreateScope() => ScopeToReturn;
+        private FakeScope? _scopeToReturn;
+        public FakeScope ScopeToReturn => _scopeToReturn ??= new FakeScope();
+        public System.Collections.Generic.List<FakeScope> CreatedScopes { get; } = new();
+
+        public IServiceScope CreateScope()
+        {
+            var scope = new FakeScope();
+            CreatedScopes.Add(scope);
+            if (_scopeToReturn is null)
+            {
+                _scopeToReturn = scope;
+            }
+            return scope;
+        }
     }
 
     private class FakeScopeSyncOnly : IServiceScope
@@ -55,8 +67,20 @@ public class DefaultTenantScopeFactoryTests
 
     private class FakeScopeFactorySyncOnly : IServiceScopeFactory
     {
-        public FakeScopeSyncOnly ScopeToReturn { get; } = new FakeScopeSyncOnly();
-        public IServiceScope CreateScope() => ScopeToReturn;
+        private FakeScopeSyncOnly? _scopeToReturn;
+        public FakeScopeSyncOnly ScopeToReturn => _scopeToReturn ??= new FakeScopeSyncOnly();
+        public System.Collections.Generic.List<FakeScopeSyncOnly> CreatedScopes { get; } = new();
+
+        public IServiceScope CreateScope()
+        {
+            var scope = new FakeScopeSyncOnly();
+            CreatedScopes.Add(scope);
+            if (_scopeToReturn is null)
+            {
+                _scopeToReturn = scope;
+            }
+            return scope;
+        }
     }
 
     [Fact]
@@ -144,5 +168,62 @@ public class DefaultTenantScopeFactoryTests
 
         await scope.DisposeAsync();
         fakeFactory.ScopeToReturn.DisposeCalls.Should().Be(1);
+    }
+
+    [Fact]
+    public void CreateScope_InactiveTenant_ThrowsTenantInactiveException()
+    {
+        var factory = new DefaultTenantScopeFactory(new FakeScopeFactory());
+        var tenant = new TenantInfo(TenantId.NewId(), "Inactive", isActive: false);
+
+        var act = () => factory.CreateScope(tenant);
+
+        act.Should().Throw<TenantInactiveException>();
+    }
+
+    [Fact]
+    public void DefaultTenantScope_OutOfOrderDisposal_RestoresOuterAmbientContext()
+    {
+        var factory = new DefaultTenantScopeFactory(new FakeScopeFactory());
+        var outerTenant = new TenantInfo(TenantId.NewId(), "OuterTenant");
+        var outerContext = new TenantContext<ITenantInfo>(outerTenant, TenantResolutionSource.Header);
+        using var ambientScope = AmbientTenantContextHolder.SetCurrentScoped(outerContext);
+
+        var tenant1 = new TenantInfo(TenantId.NewId(), "Tenant1");
+        var tenant2 = new TenantInfo(TenantId.NewId(), "Tenant2");
+
+        var scope1 = factory.CreateScope(tenant1);
+        var scope2 = factory.CreateScope(tenant2);
+
+        AmbientTenantContextHolder.Current.Should().BeSameAs(scope2.TenantContext);
+
+        // Dispose outer scope1 first (out of order!)
+        scope1.Dispose();
+
+        // Ambient is still scope2
+        AmbientTenantContextHolder.Current.Should().BeSameAs(scope2.TenantContext);
+
+        // Dispose scope2 next
+        scope2.Dispose();
+
+        // Must unwind all the way back to outerContext!
+        AmbientTenantContextHolder.Current.Should().BeSameAs(outerContext);
+    }
+
+    [Fact]
+    public void DefaultTenantScope_DisposalWithUnresolvedPreviousContext_RestoresNullAmbientContext()
+    {
+        var factory = new DefaultTenantScopeFactory(new FakeScopeFactory());
+        var unresolvedContext = TenantContext.Empty;
+        using var ambientScope = AmbientTenantContextHolder.SetCurrentScoped(unresolvedContext);
+
+        var tenant = new TenantInfo(TenantId.NewId(), "ActiveTenant");
+        var scope = factory.CreateScope(tenant);
+
+        AmbientTenantContextHolder.Current.Should().BeSameAs(scope.TenantContext);
+
+        scope.Dispose();
+
+        AmbientTenantContextHolder.Current.Should().BeNull();
     }
 }

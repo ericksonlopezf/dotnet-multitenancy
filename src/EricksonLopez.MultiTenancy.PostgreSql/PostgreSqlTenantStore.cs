@@ -116,12 +116,10 @@ public class PostgreSqlTenantStore<[DynamicallyAccessedMembers(DynamicallyAccess
             param.DbType = DbType.Guid;
             command.Parameters.Add(param);
 
-            // Stryker disable once boolean
-            await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken).ConfigureAwait(false);
-            // Stryker disable once boolean
-            if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            // Stryker disable once boolean : ConfigureAwait optimization
+            var tenant = await TryReadSingleTenantAsync(command, cancellationToken).ConfigureAwait(false);
+            if (tenant is not null)
             {
-                var tenant = MapTenant(reader);
                 return Result<TTenant>.Success(tenant);
             }
         }
@@ -153,7 +151,7 @@ public class PostgreSqlTenantStore<[DynamicallyAccessedMembers(DynamicallyAccess
             await using var connection = await CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
             await using var command = connection.CreateCommand();
 
-            bool isGuid = TenantId.TryCreate(identifier, out var parsedId);
+            var isGuid = TenantId.TryCreate(identifier, out var parsedId);
             var query = _options.CustomSelectByIdentifierQuery ?? BuildSelectByIdentifierQuery(isGuid);
             command.CommandText = query;
 
@@ -172,12 +170,10 @@ public class PostgreSqlTenantStore<[DynamicallyAccessedMembers(DynamicallyAccess
                 command.Parameters.Add(paramParsedId);
             }
 
-            // Stryker disable once boolean
-            await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken).ConfigureAwait(false);
-            // Stryker disable once boolean
-            if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            // Stryker disable once boolean : ConfigureAwait optimization
+            var tenant = await TryReadSingleTenantAsync(command, cancellationToken).ConfigureAwait(false);
+            if (tenant is not null)
             {
-                var tenant = MapTenant(reader);
                 return Result<TTenant>.Success(tenant);
             }
         }
@@ -385,6 +381,19 @@ public class PostgreSqlTenantStore<[DynamicallyAccessedMembers(DynamicallyAccess
         {
             return null;
         }
+    }
+
+    private async Task<TTenant?> TryReadSingleTenantAsync(DbCommand command, CancellationToken cancellationToken)
+    {
+        // Stryker disable once boolean
+        await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken).ConfigureAwait(false);
+        // Stryker disable once boolean
+        if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return MapTenant(reader);
+        }
+
+        return null;
     }
 }
 

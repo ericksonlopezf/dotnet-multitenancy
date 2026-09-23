@@ -1,4 +1,11 @@
 # Architectural Decision Record: REJECT-007
+
+## Status
+Rejected
+
+## Date
+2026-09-04
+
 ## Rejection of Unsafe Mutable AsyncLocal Tenant Contexts Across Unbound Threads
 
 ### Status

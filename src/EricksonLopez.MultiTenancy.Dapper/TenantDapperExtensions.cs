@@ -36,6 +36,7 @@ public static class TenantDapperExtensions
     /// <param name="tenantContext">The resolved tenant context containing the tenant identifier.</param>
     /// <param name="parameterName">The SQL parameter name (default: <c>TenantId</c>).</param>
     /// <returns>A new <see cref="DynamicParameters"/> instance initialized with the tenant identifier.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="tenantContext"/> is <see langword="null"/></exception>
     /// <exception cref="TenantNotFoundException">No tenant has been resolved in the current context</exception>
     public static DynamicParameters CreateTenantParameters(
         this ITenantContext tenantContext,
