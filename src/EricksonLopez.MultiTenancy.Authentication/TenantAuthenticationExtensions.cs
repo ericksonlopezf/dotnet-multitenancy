@@ -37,4 +37,46 @@ public static class TenantAuthenticationExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Configures core authentication options to be isolated and cached per tenant, with dynamic scheme selection.
+    /// </summary>
+    /// <typeparam name="TTenant">The concrete tenant metadata type.</typeparam>
+    /// <param name="services">The service collection to which the per-tenant authentication is registered.</param>
+    /// <param name="configure">The action to configure per-tenant authentication options.</param>
+    /// <returns>The specified service collection for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configure"/> is <see langword="null"/></exception>
+    public static IServiceCollection AddPerTenantAuthentication<TTenant>(
+        this IServiceCollection services,
+        Action<TenantAuthenticationOptions> configure)
+        where TTenant : class, ITenantInfo
+    {
+        // Stryker disable once statement : Guard clause defensively duplicated by services.Configure
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var options = new TenantAuthenticationOptions();
+        configure(options);
+
+        services.Configure(configure);
+
+        if (options.DefaultSchemeSelector is not null)
+        {
+            services.AddPerTenantOptions<AuthenticationOptions, TTenant>((authOptions, tenant) =>
+            {
+                var scheme = options.DefaultSchemeSelector(tenant);
+                if (!string.IsNullOrEmpty(scheme))
+                {
+                    authOptions.DefaultScheme = scheme;
+                }
+            });
+            services.AddPerTenantOptions<CookieAuthenticationOptions, TTenant>();
+        }
+        else
+        {
+            services.AddPerTenantAuthentication<TTenant>();
+        }
+
+        return services;
+    }
 }

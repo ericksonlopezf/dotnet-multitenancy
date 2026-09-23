@@ -25,9 +25,19 @@ public sealed class TestTenantContext : ITenantContext, ITenantContextAccessor
     {
         get
         {
-            if (!IsResolved || Tenant is null)
+            if (Tenant is null)
             {
                 throw new TenantNotFoundException("No tenant has been resolved in the current test execution context.");
+            }
+
+            if (!Tenant.IsActive)
+            {
+                throw new TenantInactiveException(Tenant.Id);
+            }
+
+            if (!IsResolved)
+            {
+                throw new TenantNotFoundException("The resolved tenant is invalid or has an empty identifier.");
             }
 
             return Tenant;

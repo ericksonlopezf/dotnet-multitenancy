@@ -31,7 +31,7 @@ public static class ShowcaseEndpoints
         showcase.MapGet("/info", () => Results.Ok(new
         {
             Project = "EricksonLopez.MultiTenancy Showcase",
-            Version = "1.0.0",
+            Version = "2.0.0",
             Description = "Official reference implementation, executable cookbook, and learning curriculum for EricksonLopez.MultiTenancy.",
             Levels = new[]
             {

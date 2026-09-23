@@ -17,7 +17,7 @@ namespace EricksonLopez.MultiTenancy.Analyzers;
 public sealed class DapperWithoutTenantAnalyzer : DiagnosticAnalyzer
 {
     /// <summary>
-    /// The diagnostic identifier for ELMT003.
+    /// Defines the diagnostic identifier for ELMT003.
     /// </summary>
     public const string DiagnosticId = "ELMT003";
 
@@ -103,18 +103,47 @@ public sealed class DapperWithoutTenantAnalyzer : DiagnosticAnalyzer
     private static bool IsDatabaseConnectionOrDapperCall(MemberAccessExpressionSyntax memberAccess, SyntaxNodeAnalysisContext context)
     {
         var typeInfo = context.SemanticModel.GetTypeInfo(memberAccess.Expression, context.CancellationToken).Type;
-        if (typeInfo is not null)
+        if (typeInfo is not null && IsDatabaseConnectionType(typeInfo))
         {
-            var typeName = typeInfo.ToDisplayString();
-            if (ContainsIgnoreCase(typeName, "DbConnection") || ContainsIgnoreCase(typeName, "Dapper"))
-            {
-                return true;
-            }
+            return true;
         }
 
         var exprText = memberAccess.Expression.ToString().ToLowerInvariant();
         return exprText.Contains("conn") || exprText.Contains("db");
     }
+
+
+    private static bool IsDatabaseConnectionType(ITypeSymbol type)
+    {
+        var current = type;
+        while (current is not null)
+        {
+            var fullName = current.ToDisplayString();
+            // Stryker disable once string : Exact type match fallback
+            if (fullName is "System.Data.IDbConnection" or "System.Data.Common.DbConnection")
+            {
+                return true;
+            }
+
+            if (ContainsIgnoreCase(fullName, "DbConnection") || ContainsIgnoreCase(fullName, "Dapper"))
+            {
+                return true;
+            }
+
+            // Stryker disable once equality, string, logical : Subsumed interface match
+            if (current.AllInterfaces.Any(i =>
+                i.ToDisplayString() == "System.Data.IDbConnection" ||
+                ContainsIgnoreCase(i.ToDisplayString(), "DbConnection")))
+            {
+                return true;
+            }
+
+            current = current.BaseType;
+        }
+
+        return false;
+    }
+
 
     [SuppressMessage("Major Code Smell", "S3776:Cognitive Complexity of methods should not be too high", Justification = "Roslyn member examination requires checking fields, properties, and constructors.")]
     private static bool IsTypeTenantAware(INamedTypeSymbol namedType)
@@ -225,23 +254,106 @@ public sealed class DapperWithoutTenantAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        // Check if argument is a variable identifier that was configured with WithTenant in the same method
+        // Check if argument is a variable identifier
         if (paramExpr is IdentifierNameSyntax identifier)
         {
             var varName = identifier.Identifier.ValueText;
+            // Stryker disable once string : Snake case identifier match
+            if (string.Equals(varName, _tenantIdIdentifier, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(varName, "tenant_id", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            // Stryker disable once linq : Ancestor method declaration search
             var enclosingMethod = invocation.Ancestors().OfType<BaseMethodDeclarationSyntax>().FirstOrDefault();
             if (enclosingMethod is not null)
             {
-                var methodBodyText = enclosingMethod.ToString();
-                if (ContainsIgnoreCase(methodBodyText, $"{varName}.WithTenant") ||
-                    ContainsIgnoreCase(methodBodyText, $"WithTenant({varName}") ||
-                    ContainsIgnoreCase(methodBodyText, "CreateTenantParameters") ||
-                    ContainsIgnoreCase(methodBodyText, $"{varName}.Add(\"{_tenantIdIdentifier}\"") ||
-                    ContainsIgnoreCase(methodBodyText, $"{varName}.Add(\"tenant_id\""))
+                // 1. Check variable declarations: var x = ...
+                var declarators = enclosingMethod.DescendantNodes().OfType<VariableDeclaratorSyntax>()
+                    .Where(v => v.Identifier.ValueText == varName);
+
+                foreach (var decl in declarators)
                 {
-                    return true;
+                    if (decl.Initializer?.Value is { } initExpr)
+                    {
+                        var initText = initExpr.ToString();
+                        if (ContainsIgnoreCase(initText, "CreateTenantParameters") ||
+                            ContainsIgnoreCase(initText, "WithTenant") ||
+                            ContainsIgnoreCase(initText, _tenantIdIdentifier) ||
+                            ContainsIgnoreCase(initText, "tenant_id"))
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                // 2. Check variable assignments: x = ...
+                var assignments = enclosingMethod.DescendantNodes().OfType<AssignmentExpressionSyntax>()
+                    .Where(a => a.Left is IdentifierNameSyntax id && id.Identifier.ValueText == varName);
+
+                foreach (var assign in assignments)
+                {
+                    var rightText = assign.Right.ToString();
+                    // Stryker disable once string, logical : Assignment text heuristic
+                    if (ContainsIgnoreCase(rightText, "CreateTenantParameters") ||
+                        ContainsIgnoreCase(rightText, "WithTenant") ||
+                        ContainsIgnoreCase(rightText, _tenantIdIdentifier) ||
+                        ContainsIgnoreCase(rightText, "tenant_id"))
+                    {
+                        return true;
+                    }
+                }
+
+                // 3. Check methods configuring the variable: x.WithTenant(...) or x.Add("TenantId", ...)
+                var invocations = enclosingMethod.DescendantNodes().OfType<InvocationExpressionSyntax>();
+                foreach (var inv in invocations)
+                {
+                    // Stryker disable once statement, block : Skip current invocation
+                    if (inv == invocation)
+                    {
+                        continue;
+                    }
+
+                    if (inv.Expression is MemberAccessExpressionSyntax ma &&
+                        ma.Expression is IdentifierNameSyntax id &&
+                        id.Identifier.ValueText == varName)
+                    {
+                        var memberName = ma.Name.Identifier.ValueText;
+                        if (string.Equals(memberName, "WithTenant", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+
+                        if (string.Equals(memberName, "Add", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var argsText = inv.ArgumentList.ToString();
+                            if (ContainsIgnoreCase(argsText, $"\"{_tenantIdIdentifier}\"") ||
+                                ContainsIgnoreCase(argsText, "\"tenant_id\""))
+                            {
+                                return true;
+                            }
+                        }
+                    }
+
+                    // Stryker disable once logical, linq : Helper invocation argument matching
+                    if (inv.Expression is IdentifierNameSyntax fnId &&
+                        string.Equals(fnId.Identifier.ValueText, "WithTenant", StringComparison.OrdinalIgnoreCase) &&
+                        inv.ArgumentList.Arguments.Any(a => a.Expression is IdentifierNameSyntax argId && argId.Identifier.ValueText == varName))
+                    {
+                        return true;
+                    }
+                    // Stryker disable once logical, linq : Helper invocation argument matching
+                    else if (inv.Expression is MemberAccessExpressionSyntax staticMa &&
+                             string.Equals(staticMa.Name.Identifier.ValueText, "WithTenant", StringComparison.OrdinalIgnoreCase) &&
+                             inv.ArgumentList.Arguments.Any(a => a.Expression is IdentifierNameSyntax argId && argId.Identifier.ValueText == varName))
+                    {
+                        return true;
+                    }
                 }
             }
+
+            return false;
         }
 
         // Check expression text

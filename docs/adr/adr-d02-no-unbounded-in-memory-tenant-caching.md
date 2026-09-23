@@ -3,6 +3,9 @@
 ## Status
 Rejected (Discard Record)
 
+## Date
+2026-09-04
+
 ## Context
 In multi-tenant SaaS systems, tenant stores frequently resolve tenant metadata from relational databases, Redis, or external identity providers. Storing resolved tenant metadata directly in unbounded in-memory dictionaries (`ConcurrentDictionary<string, TenantInfo>` without TTL or eviction) is common practice in basic libraries.
 

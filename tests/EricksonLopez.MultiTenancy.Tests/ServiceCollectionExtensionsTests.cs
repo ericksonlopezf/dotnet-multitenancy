@@ -302,6 +302,38 @@ public class ServiceCollectionExtensionsTests
         requestedPath.Should().Be($"/custom-remote-tenants/{testId.Value}");
     }
 
+    [Fact]
+    public void AddMultiTenancy_Resolves_TTenant_Directly_When_Context_Is_Resolved()
+    {
+        var services = new ServiceCollection();
+        services.AddMultiTenancy<TenantInfo>();
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        var expectedTenant = new TenantInfo(TenantId.NewId(), "DirectTenant");
+        var accessor = scope.ServiceProvider.GetRequiredService<ITenantContextAccessor>();
+        accessor.TenantContext = TenantContext.Create(expectedTenant, TenantResolutionSource.JwtClaim);
+
+        var directTenant = scope.ServiceProvider.GetRequiredService<TenantInfo>();
+        directTenant.Should().NotBeNull();
+        directTenant.Id.Should().Be(expectedTenant.Id);
+        directTenant.Name.Should().Be("DirectTenant");
+    }
+
+    [Fact]
+    public void AddMultiTenancy_Throws_TenantNotFoundException_When_Context_Not_Resolved()
+    {
+        var services = new ServiceCollection();
+        services.AddMultiTenancy<TenantInfo>();
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        var act = () => scope.ServiceProvider.GetRequiredService<TenantInfo>();
+        act.Should().Throw<TenantNotFoundException>().WithMessage("Active tenant context is not resolved for this request scope.");
+    }
+
     private sealed class DelegateHttpMessageHandler : System.Net.Http.HttpMessageHandler
     {
         private readonly Func<System.Net.Http.HttpRequestMessage, System.Threading.CancellationToken, Task<System.Net.Http.HttpResponseMessage>> _handler;

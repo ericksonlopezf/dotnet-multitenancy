@@ -1,6 +1,6 @@
 # Feature Status Matrix — EricksonLopez.MultiTenancy
 
-> **Audit Version:** 1.0.0  
+> **Audit Version:** 2.0.0  
 > **Status:** Active
 
 ---
@@ -139,7 +139,7 @@ All NuGet dependency versions are centrally locked in [`Directory.Packages.props
 
 | Package | Version | Consumer Layer |
 | :--- | :--- | :--- |
-| `EricksonLopez.Result` | `1.0.0` | Abstractions (L0) |
+| `EricksonLopez.Result` | `2.0.0` | Abstractions (L0) |
 | `Microsoft.Extensions.DependencyInjection.Abstractions` | `8.0.2` | Core (L1) |
 | `Microsoft.Extensions.DependencyInjection` | `8.0.1` | Core (L1) |
 | `Microsoft.Extensions.Options` | `8.0.2` | Core (L1), Configuration (L3) |

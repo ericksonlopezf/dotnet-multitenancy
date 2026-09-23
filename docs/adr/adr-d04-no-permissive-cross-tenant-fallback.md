@@ -3,6 +3,9 @@
 ## Status
 Rejected (Discard Record)
 
+## Date
+2026-09-04
+
 ## Context
 Some multi-tenancy frameworks allow falling back to a "Default Tenant" or "System Tenant" whenever an incoming HTTP request fails to provide valid tenant resolution credentials (e.g., missing header, missing subdomain, or invalid token).
 

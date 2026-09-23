@@ -24,7 +24,7 @@ public sealed class OpenTelemetryTests
     {
         TenantActivitySource.ActivitySourceName.Should().Be("EricksonLopez.MultiTenancy");
         TenantActivitySource.Source.Name.Should().Be("EricksonLopez.MultiTenancy");
-        TenantActivitySource.Source.Version.Should().Be("1.0.0");
+        TenantActivitySource.Source.Version.Should().Be("2.0.0");
 
         TenantActivitySource.Tags.TenantId.Should().Be("tenant.id");
         TenantActivitySource.Tags.TenantName.Should().Be("tenant.name");
@@ -278,9 +278,9 @@ public sealed class OpenTelemetryTests
     public void TenantMetrics_Meter_Properties_ShouldBeCorrect()
     {
         TenantMetrics.MeterName.Should().Be("EricksonLopez.MultiTenancy");
-        TenantMetrics.MeterVersion.Should().Be("1.0.0");
+        TenantMetrics.MeterVersion.Should().Be("2.0.0");
         TenantMetrics.Meter.Name.Should().Be("EricksonLopez.MultiTenancy");
-        TenantMetrics.Meter.Version.Should().Be("1.0.0");
+        TenantMetrics.Meter.Version.Should().Be("2.0.0");
 
         TenantMetrics.ResolutionTotal.Name.Should().Be("tenant.resolution.total");
         TenantMetrics.ResolutionTotal.Unit.Should().Be("{resolutions}");
@@ -461,5 +461,23 @@ public sealed class OpenTelemetryTests
         var tags = measurements.First().Tags;
         tags["tenant.strategy.first"].Should().Be("ClaimStrategy");
         tags["tenant.strategy.second"].Should().Be("HeaderStrategy");
+    }
+
+    [Fact]
+    public void TenantActivityTags_ExposeCanonicalAttributesAndBaggage()
+    {
+        TenantActivityTags.TenantId.Should().Be("tenant.id");
+        TenantActivityTags.TenantName.Should().Be("tenant.name");
+        TenantActivityTags.TenantSource.Should().Be("tenant.source");
+        TenantActivityTags.TenantIsActive.Should().Be("tenant.is_active");
+        TenantActivityTags.ResolutionStrategy.Should().Be("tenant.resolution_strategy");
+        TenantActivityTags.BaggageTenantId.Should().Be("tenant.id");
+
+        TenantActivityTags.TenantId.Should().Be(TenantActivitySource.Tags.TenantId);
+        TenantActivityTags.TenantName.Should().Be(TenantActivitySource.Tags.TenantName);
+        TenantActivityTags.TenantSource.Should().Be(TenantActivitySource.Tags.TenantSource);
+        TenantActivityTags.TenantIsActive.Should().Be(TenantActivitySource.Tags.TenantIsActive);
+        TenantActivityTags.ResolutionStrategy.Should().Be(TenantActivitySource.Tags.ResolutionStrategy);
+        TenantActivityTags.BaggageTenantId.Should().Be(TenantActivitySource.Baggage.TenantId);
     }
 }

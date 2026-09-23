@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Description>ASP.NET Core integration for multi-tenant SaaS applications: resolution middleware, endpoint filters and strategies (Header, Host, Claims, Route).</Description>
-    <PackageTags>$(CommonPackageTags);aspnetcore;middleware;minimal-apis;tenant-resolution;http;routing;native-aot</PackageTags>
+    <PackageTags>$(CommonPackageTags);aspnetcore;middleware;minimal-apis;tenant-resolution;resolution-strategy;routing;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

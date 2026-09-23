@@ -2,6 +2,7 @@
 using System;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
@@ -36,7 +37,7 @@ namespace EricksonLopez.MultiTenancy.SqlServer;
 public static class SqlServerSessionContextExtensions
 {
     /// <summary>
-    /// The default SQL Server session context key used to store the tenant identifier.
+    /// Specifies the default SQL Server session context key used to store the tenant identifier.
     /// </summary>
     public const string DefaultTenantSessionKey = "TenantId";
 
@@ -44,8 +45,8 @@ public static class SqlServerSessionContextExtensions
     /// Establishes the tenant context in SQL Server's session context by executing <c>sp_set_session_context</c>.
     /// </summary>
     /// <param name="connection">The open database connection.</param>
+    /// <param name="transaction">The active SQL Server transaction.</param>
     /// <param name="tenantContext">The resolved tenant context containing the tenant identifier.</param>
-    /// <param name="transaction">The optional active SQL Server transaction.</param>
     /// <param name="sessionKey">The session context key name. Defaults to <see cref="DefaultTenantSessionKey"/>.</param>
     /// <param name="readOnly">
     /// If <see langword="true"/>, the value cannot be modified again until the connection is closed.
@@ -55,17 +56,25 @@ public static class SqlServerSessionContextExtensions
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="connection"/> or <paramref name="tenantContext"/> is <see langword="null"/></exception>
     /// <exception cref="ArgumentException"><paramref name="sessionKey"/> is <see langword="null"/>, empty, or consists only of white-space characters</exception>
+    /// <exception cref="InvalidOperationException"><paramref name="transaction"/> is <see langword="null"/></exception>
     /// <exception cref="TenantNotFoundException">No tenant has been resolved in the current context or the tenant identifier is empty</exception>
     public static Task SetTenantSessionContextAsync(
         this DbConnection connection,
+        DbTransaction transaction,
         ITenantContext tenantContext,
-        DbTransaction? transaction = null,
         string sessionKey = DefaultTenantSessionKey,
         bool readOnly = false,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(tenantContext);
+
+        if (transaction is null)
+        {
+            throw new InvalidOperationException(
+                "Setting SQL Server session context requires an active transaction to prevent context leakage across connection pool reuse. " +
+                "Call BeginTenantTransactionAsync() or BeginTransactionAsync() before calling SetTenantSessionContextAsync().");
+        }
 
         if (string.IsNullOrWhiteSpace(sessionKey))
         {
@@ -94,6 +103,22 @@ public static class SqlServerSessionContextExtensions
             cancellationToken: cancellationToken);
 
         return connection.ExecuteAsync(command);
+    }
+
+    /// <summary>
+    /// Establishes the tenant context in SQL Server's session context by executing <c>sp_set_session_context</c>.
+    /// Provides strongly-typed SqlConnection support to eliminate ambiguity when multiple database provider packages are referenced.
+    /// </summary>
+    [ExcludeFromCodeCoverage(Justification = "Requires physical SQL Server connection for SqlConnection typed operations")]
+    public static Task SetTenantSessionContextAsync(
+        this SqlConnection connection,
+        DbTransaction transaction,
+        ITenantContext tenantContext,
+        string sessionKey = DefaultTenantSessionKey,
+        bool readOnly = false,
+        CancellationToken cancellationToken = default)
+    {
+        return ((DbConnection)connection).SetTenantSessionContextAsync(transaction, tenantContext, sessionKey, readOnly, cancellationToken);
     }
 
     /// <summary>
@@ -134,6 +159,41 @@ public static class SqlServerSessionContextExtensions
     }
 
     /// <summary>
+    /// Synchronously resets the tenant session context key to <see langword="null"/> to prevent context leakage across connection pool reuse.
+    /// </summary>
+    /// <param name="connection">The open database connection.</param>
+    /// <param name="transaction">The optional active SQL Server transaction.</param>
+    /// <param name="sessionKey">The session context key name. Defaults to <see cref="DefaultTenantSessionKey"/>.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="connection"/> is <see langword="null"/></exception>
+    /// <exception cref="ArgumentException"><paramref name="sessionKey"/> is <see langword="null"/>, empty, or consists only of white-space characters</exception>
+    public static void ResetTenantSessionContext(
+        this DbConnection connection,
+        DbTransaction? transaction = null,
+        string sessionKey = DefaultTenantSessionKey)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+
+        if (string.IsNullOrWhiteSpace(sessionKey))
+        {
+            throw new ArgumentException("Session key name must not be null or whitespace.", nameof(sessionKey));
+        }
+
+        const string sql = "EXEC sp_set_session_context @key = @Key, @value = NULL, @read_only = 0;";
+
+        // Stryker disable statement, string : Dapper dynamic parameter binding for session key
+        var parameters = new DynamicParameters();
+        parameters.Add("Key", sessionKey, DbType.String);
+        // Stryker restore statement, string
+
+        var command = new CommandDefinition(
+            sql,
+            parameters,
+            transaction: transaction);
+
+        connection.Execute(command);
+    }
+
+    /// <summary>
     /// Opens a new transaction on the provided SQL Server connection and sets the tenant session context atomically.
     /// </summary>
     /// <param name="connection">The database connection (opened automatically if not already open).</param>
@@ -162,23 +222,61 @@ public static class SqlServerSessionContextExtensions
         }
 
         // Stryker disable once boolean
-        var transaction = await connection.BeginTransactionAsync(isolationLevel, cancellationToken).ConfigureAwait(false);
+        var rawTransaction = await connection.BeginTransactionAsync(isolationLevel, cancellationToken).ConfigureAwait(false);
+        var transaction = new TenantSessionTransaction(
+            rawTransaction,
+            connection,
+            conn => conn.ResetTenantSessionContextAsync(sessionKey: sessionKey, cancellationToken: cancellationToken),
+            conn => conn.ResetTenantSessionContext(sessionKey: sessionKey));
 
         try
         {
             // Stryker disable once boolean
-            await connection.SetTenantSessionContextAsync(tenantContext, transaction, sessionKey, readOnly, cancellationToken)
+            await connection.SetTenantSessionContextAsync(transaction, tenantContext, sessionKey, readOnly, cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch
+        catch (Exception)
         {
-            // Stryker disable once boolean
-            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
-            // Stryker disable once boolean
-            await transaction.DisposeAsync().ConfigureAwait(false);
+            try
+            {
+                // Stryker disable once boolean
+                await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // Ignore rollback exceptions if the connection is already dead
+            }
+            finally
+            {
+                // Stryker disable once boolean
+                await transaction.DisposeAsync().ConfigureAwait(false);
+            }
             throw;
         }
 
         return transaction;
+    }
+
+    /// <summary>
+    /// Opens a new transaction on the provided SQL Server connection and sets the tenant session context atomically.
+    /// Provides strongly-typed SqlConnection support to eliminate ambiguity when multiple database provider packages are referenced.
+    /// </summary>
+    /// <param name="connection">The SqlConnection database connection (opened automatically if not already open).</param>
+    /// <param name="tenantContext">The resolved tenant context.</param>
+    /// <param name="isolationLevel">The transaction isolation level (default: <see cref="IsolationLevel.ReadCommitted"/>).</param>
+    /// <param name="sessionKey">The session context key name.</param>
+    /// <param name="readOnly">Whether the session context key should be marked read-only for the remainder of the connection.</param>
+    /// <param name="cancellationToken">A token that can be used to cancel the asynchronous operation.</param>
+    /// <returns>A task representing the asynchronous operation. The task result contains the started transaction with tenant context applied.</returns>
+    [ExcludeFromCodeCoverage(Justification = "Requires physical SQL Server connection for SqlConnection typed operations")]
+    public static async Task<DbTransaction> BeginTenantTransactionAsync(
+        this SqlConnection connection,
+        ITenantContext tenantContext,
+        IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
+        string sessionKey = DefaultTenantSessionKey,
+        bool readOnly = false,
+        CancellationToken cancellationToken = default)
+    {
+        return await ((DbConnection)connection).BeginTenantTransactionAsync(tenantContext, isolationLevel, sessionKey, readOnly, cancellationToken).ConfigureAwait(false);
     }
 }

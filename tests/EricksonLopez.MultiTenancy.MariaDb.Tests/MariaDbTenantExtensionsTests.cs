@@ -1,6 +1,7 @@
 // Copyright © Erickson Lopez. MIT License.
 using System;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,9 +26,10 @@ public class MariaDbTenantExtensionsTests
     public async Task SetTenantSessionVariableAsync_NullConnection_ThrowsArgumentNullException()
     {
         FakeDbConnection connection = null!;
+        var transaction = Substitute.For<DbTransaction>();
         var context = Substitute.For<ITenantContext>();
 
-        var act = () => connection.SetTenantSessionVariableAsync(context);
+        var act = () => connection.SetTenantSessionVariableAsync(transaction, context);
         await act.Should().ThrowAsync<ArgumentNullException>().WithParameterName("connection");
     }
 
@@ -35,17 +37,30 @@ public class MariaDbTenantExtensionsTests
     public async Task SetTenantSessionVariableAsync_NullContext_ThrowsArgumentNullException()
     {
         var connection = new FakeDbConnection();
-        var act = () => connection.SetTenantSessionVariableAsync(null!);
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
+        var act = () => connection.SetTenantSessionVariableAsync(transaction, null!);
         await act.Should().ThrowAsync<ArgumentNullException>().WithParameterName("tenantContext");
+    }
+
+    [Fact]
+    public async Task SetTenantSessionVariableAsync_NullTransaction_ThrowsInvalidOperationException()
+    {
+        var connection = new FakeDbConnection();
+        var context = CreateContext(ExpectedTenantId);
+
+        var act = () => connection.SetTenantSessionVariableAsync(null!, context);
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("Setting MariaDB session variable requires an active transaction to prevent context leakage across connection pool reuse. Call BeginTenantTransactionAsync() or BeginTransactionAsync() before calling SetTenantSessionVariableAsync().");
     }
 
     [Fact]
     public async Task SetTenantSessionVariableAsync_EmptyVariableName_ThrowsArgumentException()
     {
         var connection = new FakeDbConnection();
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
         var context = CreateContext(ExpectedTenantId);
 
-        var act = () => connection.SetTenantSessionVariableAsync(context, variableName: "   ");
+        var act = () => connection.SetTenantSessionVariableAsync(transaction, context, variableName: "   ");
         (await act.Should().ThrowAsync<ArgumentException>().WithParameterName("variableName"))
             .WithMessage("Variable name must not be null or whitespace. (Parameter 'variableName')");
     }
@@ -54,9 +69,10 @@ public class MariaDbTenantExtensionsTests
     public async Task SetTenantSessionVariableAsync_EmptyTenantId_ThrowsTenantNotFoundException()
     {
         var connection = new FakeDbConnection();
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
         var context = CreateContext(TenantId.Empty);
 
-        var act = () => connection.SetTenantSessionVariableAsync(context);
+        var act = () => connection.SetTenantSessionVariableAsync(transaction, context);
         (await act.Should().ThrowAsync<TenantNotFoundException>())
             .WithMessage("Tenant identifier is empty. Cannot establish MariaDB tenant session variable.");
     }
@@ -65,12 +81,14 @@ public class MariaDbTenantExtensionsTests
     public async Task SetTenantSessionVariableAsync_Valid_ExecutesExpectedCommand()
     {
         var connection = new FakeDbConnection();
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
         var context = CreateContext(ExpectedTenantId);
 
-        await connection.SetTenantSessionVariableAsync(context, variableName: "@custom_tenant_maria");
+        await connection.SetTenantSessionVariableAsync(transaction, context, variableName: "@custom_tenant_maria");
 
         var cmd = connection.Commands.Single();
         cmd.CommandText.Should().Be("SET @custom_tenant_maria = @Value;");
+        cmd.Transaction.Should().BeSameAs(transaction);
 
         cmd.Parameters["Value"].Value.Should().Be(ExpectedGuid.ToString());
         cmd.Parameters["Value"].DbType.Should().Be(DbType.String);
@@ -190,11 +208,12 @@ public class MariaDbTenantExtensionsTests
     public async Task SetTenantSessionVariableAsync_CancelledToken_ThrowsOperationCanceledException()
     {
         var connection = new FakeDbConnection();
+        var transaction = new FakeDbTransaction(connection, IsolationLevel.ReadCommitted);
         var context = CreateContext(ExpectedTenantId);
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        var act = () => connection.SetTenantSessionVariableAsync(context, cancellationToken: cts.Token);
+        var act = () => connection.SetTenantSessionVariableAsync(transaction, context, cancellationToken: cts.Token);
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
@@ -217,6 +236,35 @@ public class MariaDbTenantExtensionsTests
 
         connection.Commands.Should().ContainSingle();
         connection.Commands.Single().CommandText.Should().Be("SET @custom_tenant_id = NULL;");
+    }
+
+    [Fact]
+    public void ResetTenantSessionVariable_NullConnection_ThrowsArgumentNullException()
+    {
+        DbConnection connection = null!;
+        var act = () => connection.ResetTenantSessionVariable();
+        act.Should().Throw<ArgumentNullException>().WithParameterName("connection");
+    }
+
+    [Fact]
+    public void ResetTenantSessionVariable_EmptyVariableName_ThrowsArgumentException()
+    {
+        var connection = new FakeDbConnection();
+        var act = () => connection.ResetTenantSessionVariable(variableName: "   ");
+        act.Should().Throw<ArgumentException>().WithParameterName("variableName")
+            .WithMessage("Variable name must not be null or whitespace.*");
+    }
+
+    [Fact]
+    public void ResetTenantSessionVariable_Valid_ExecutesExpectedCommand()
+    {
+        var connection = new FakeDbConnection();
+        connection.Open();
+
+        connection.ResetTenantSessionVariable(variableName: "@custom_var");
+
+        connection.Commands.Should().ContainSingle();
+        connection.Commands.Single().CommandText.Should().Be("SET @custom_var = NULL;");
     }
 
     private static ITenantContext CreateContext(TenantId id)

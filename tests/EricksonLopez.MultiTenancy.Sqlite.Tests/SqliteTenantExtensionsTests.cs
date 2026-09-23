@@ -1,6 +1,7 @@
 // Copyright © Erickson Lopez. MIT License.
 using System;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -201,6 +202,56 @@ public class SqliteTenantExtensionsTests
         act.Should().Throw<ArgumentNullException>().WithParameterName("tenant");
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Factory_Constructor_NullOrWhitespace_ThrowsArgumentException(string? template)
+    {
+        var act = () => new SqliteTenantConnectionFactory(template!);
+        act.Should().Throw<ArgumentException>().WithParameterName("connectionStringTemplate");
+    }
+
+    [Fact]
+    public void Factory_BuildConnectionString_NamePlaceholderWithEmptyName_ThrowsArgumentException()
+    {
+        var factory = new SqliteTenantConnectionFactory("Data Source={Name}.db;");
+        var tenantInfo = new TenantInfo(ExpectedTenantId, "   ");
+
+        var act = () => factory.BuildConnectionString(tenantInfo);
+        act.Should().Throw<ArgumentException>().WithParameterName("tenant")
+            .WithMessage("Tenant name must not be null or whitespace when {Name} placeholder is used in connection string template.*");
+    }
+
+    [Fact]
+    public void Factory_BuildConnectionString_NoNamePlaceholderWithEmptyTenantName_Succeeds()
+    {
+        var factory = new SqliteTenantConnectionFactory("Data Source={TenantId}.db;");
+        var tenantInfo = new TenantInfo(ExpectedTenantId, "");
+
+        var result = factory.BuildConnectionString(tenantInfo);
+        result.Should().Be($"Data Source={ExpectedGuid.ToString()}.db;");
+    }
+
+    [Theory]
+    [InlineData("..\\secret")]
+    [InlineData("../secret")]
+    [InlineData("*corp")]
+    [InlineData("|corp")]
+    [InlineData("?corp")]
+    [InlineData("tenant/corp")]
+    [InlineData("tenant\\corp")]
+    [InlineData("tenant*corp")]
+    public void Factory_BuildConnectionString_DirectoryTraversalOrInvalidChars_ThrowsArgumentException(string maliciousName)
+    {
+        var factory = new SqliteTenantConnectionFactory("Data Source={Name}.db;");
+        var tenantInfo = new TenantInfo(ExpectedTenantId, maliciousName);
+
+        var act = () => factory.BuildConnectionString(tenantInfo);
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*contains invalid path characters or directory traversal sequences*");
+    }
+
     [Fact]
     public void Factory_BuildConnectionString_HasExplicitConnectionString_ReturnsExplicit()
     {
@@ -248,4 +299,41 @@ public class SqliteTenantExtensionsTests
         context.RequiredTenant.Returns(tenantInfo);
         return context;
     }
+
+    [Fact]
+    public async Task BeginTenantTransactionAsync_WhenRollbackThrows_PreservesOriginalException()
+    {
+        var connection = new ThrowingRollbackConnection();
+        var context = CreateContext(TenantId.Empty);
+
+        var act = () => connection.BeginTenantTransactionAsync(context);
+        await act.Should().ThrowAsync<TenantNotFoundException>();
+    }
+
+    private sealed class ThrowingRollbackConnection : FakeDbConnection
+    {
+        protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
+        {
+            var tx = new ThrowingRollbackTransaction(this, isolationLevel);
+            Transactions.Add(tx);
+            return tx;
+        }
+
+        protected override ValueTask<DbTransaction> BeginDbTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken)
+        {
+            var tx = new ThrowingRollbackTransaction(this, isolationLevel);
+            Transactions.Add(tx);
+            return new(tx);
+        }
+    }
+
+    private sealed class ThrowingRollbackTransaction : FakeDbTransaction
+    {
+        public ThrowingRollbackTransaction(DbConnection connection, IsolationLevel isolationLevel)
+            : base(connection, isolationLevel) { }
+
+        public override Task RollbackAsync(CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("Simulated socket teardown error during rollback.");
+    }
 }
+

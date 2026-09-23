@@ -6,7 +6,7 @@
     <IsPackable>false</IsPackable>
     <IsAotCompatible>false</IsAotCompatible>
     <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
-    <NoWarn>$(NoWarn);CS1591;IL2026;IL3050;CA1852;CA1859;CA1707;CA1861;CA1848;CA1873;CA2007</NoWarn>
+    <NoWarn>$(NoWarn);IL2026;IL3050;CA1852;CA1859;CA1707;CA1861;CA1848;CA1873;CA2007</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

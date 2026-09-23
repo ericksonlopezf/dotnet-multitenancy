@@ -3,6 +3,9 @@
 ## Status
 Rejected (Discard Record)
 
+## Date
+2026-09-04
+
 ## Context
 Several multi-tenancy libraries and EF Core interceptors attempt to enforce tenant isolation by dynamically parsing raw SQL strings at runtime (via regex or AST rewriters) and automatically injecting `AND tenant_id = 'xxx'` into `WHERE` clauses.
 

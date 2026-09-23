@@ -1,6 +1,13 @@
 # ADR 008: Adopt Fail-Closed Tenant Resolution Conflict Detection
 
+## Status
+Accepted
+
+## Date
+2026-08-22
+
 **Date:** 2026-08-22  
+**Last Updated:** 2026-09-13 (corrected exception type and HTTP response behavior)  
 **Status:** Accepted  
 **Context:** Tenant Resolution Middleware
 
@@ -19,7 +26,9 @@ While ADR-003 dictates that authenticated claims must take precedence over heade
 We will **abandon the "first-wins" short-circuiting logic** in the `TenantResolutionMiddleware` and **adopt a fail-closed conflict detection model**.
 
 1. The middleware will evaluate *all* registered resolution strategies.
-2. If more than one strategy successfully resolves a `TenantId`, and those IDs are *different*, the middleware will immediately abort the request and throw an `InvalidOperationException`.
+2. If more than one strategy successfully resolves a `TenantId`, and those IDs are *different*, the middleware will immediately abort the request by:
+   - Throwing a `TenantResolutionConflictException` (when `WriteProblemDetailsOnConflict = false`, the default), **or**
+   - Writing an **HTTP 409 Conflict** response with RFC 9457 Problem Details JSON (when `WriteProblemDetailsOnConflict = true` in `TenantResolutionMiddlewareOptions`).
 3. If multiple strategies resolve the *same* `TenantId`, the request proceeds normally.
 4. If no strategy resolves a `TenantId`, the request proceeds normally (allowing the `RequireTenantFilter` to enforce the requirement later).
 

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Description>Oracle Virtual Private Database (VPD) and Fine-Grained Access Control (FGAC) multi-tenant integration for EricksonLopez.MultiTenancy. Sets DBMS_SESSION.SET_IDENTIFIER and Oracle ClientId for tenant isolation with Oracle.ManagedDataAccess.Core and Dapper.</Description>
-    <PackageTags>$(CommonPackageTags);oracle;vpd;fgac;row-level-security;database-isolation;dapper;sql</PackageTags>
+    <PackageTags>$(CommonPackageTags);oracle;vpd;virtual-private-database;fgac;fine-grained-access-control;row-level-security;database-isolation;dapper;sql</PackageTags>
     <!-- Oracle.ManagedDataAccess.Core is NOT NativeAOT compatible due to heavy internal runtime reflection -->
     <IsAotCompatible>false</IsAotCompatible>
     <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
@@ -17,6 +17,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EricksonLopez.MultiTenancy.Abstractions\EricksonLopez.MultiTenancy.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EricksonLopez.MultiTenancy.Oracle.Tests" />
   </ItemGroup>
 
 </Project>

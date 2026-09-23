@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Description>PostgreSQL Row Level Security (RLS) integration for EricksonLopez.MultiTenancy. Provides transaction-scoped tenant context propagation via SET LOCAL for connection-pool-safe tenant isolation.</Description>
-    <PackageTags>$(CommonPackageTags);postgresql;rls;row-level-security;database-isolation;tenant-store;dapper;sql;native-aot</PackageTags>
+    <PackageTags>$(CommonPackageTags);postgresql;npgsql;rls;row-level-security;database-isolation;tenant-store;dapper;sql;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

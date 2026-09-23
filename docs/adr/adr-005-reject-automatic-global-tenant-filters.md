@@ -3,6 +3,9 @@
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 Automatic global query filters (as implemented in EF Core's `HasQueryFilter` or as a SqlBuilder feature) that silently append `WHERE tenant_id = @CurrentTenant` to all queries were evaluated as a primary or sole isolation mechanism.
 

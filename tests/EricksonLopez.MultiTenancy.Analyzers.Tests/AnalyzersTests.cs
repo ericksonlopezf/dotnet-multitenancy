@@ -1,12 +1,16 @@
 // Copyright © Erickson Lopez. MIT License.
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using EricksonLopez.MultiTenancy.Analyzers;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeActions;
+using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Xunit;
@@ -204,6 +208,38 @@ public class OrderService
         diagnostics.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task ELMT001_StaticTenantInfoField_EmitsDiagnostic()
+    {
+        var source = @"
+using EricksonLopez.MultiTenancy;
+
+public class OrderService
+{
+    private static ITenantInfo _staticTenant;
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new TenantContextStaticFieldAnalyzer(), source);
+        diagnostics.Should().ContainSingle(d => d.Id == "ELMT001");
+        diagnostics[0].GetMessage(System.Globalization.CultureInfo.InvariantCulture).Should().Contain("_staticTenant").And.Contain("ITenantInfo");
+    }
+
+    [Fact]
+    public async Task ELMT001_StaticTenantIdField_EmitsDiagnostic()
+    {
+        var source = @"
+using EricksonLopez.MultiTenancy;
+
+public class OrderService
+{
+    private static TenantId _staticTenantId;
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new TenantContextStaticFieldAnalyzer(), source);
+        diagnostics.Should().ContainSingle(d => d.Id == "ELMT001");
+        diagnostics[0].GetMessage(System.Globalization.CultureInfo.InvariantCulture).Should().Contain("_staticTenantId").And.Contain("TenantId");
+    }
+
     // ─────────────────────────────────────────────────────────
     // ELMT002: TenantContextInSingletonAnalyzer
     // ─────────────────────────────────────────────────────────
@@ -234,6 +270,9 @@ public class OrderService
     [InlineData("UserCache")]
     [InlineData("CustomerSingleton")]
     [InlineData("CatalogMemoryStore")]
+    [InlineData("OrderHostedService")]
+    [InlineData("PaymentBackgroundService")]
+    [InlineData("EmailWorker")]
     public async Task ELMT002_SingletonClassWithTenantContextField_EmitsDiagnostic(string className)
     {
         var source = $@"
@@ -287,6 +326,23 @@ public class OrderCache
 ";
         var diagnostics = await RunAnalyzerAsync(new TenantContextInSingletonAnalyzer(), source);
         diagnostics.Should().ContainSingle(d => d.Id == "ELMT002");
+    }
+
+    [Fact]
+    public async Task ELMT002_SingletonClassWithTenantContextProperty_EmitsDiagnostic()
+    {
+        var source = @"
+using EricksonLopez.MultiTenancy;
+
+public class OrderCache
+{
+    public ITenantContext TenantContext { get; }
+    public OrderCache(ITenantContext tenantContext) => TenantContext = tenantContext;
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new TenantContextInSingletonAnalyzer(), source);
+        diagnostics.Should().ContainSingle(d => d.Id == "ELMT002");
+        diagnostics[0].GetMessage(System.Globalization.CultureInfo.InvariantCulture).Should().Contain("OrderCache").And.Contain("ITenantContext");
     }
 
     [Fact]
@@ -1652,5 +1708,384 @@ public class NamespaceRepo
         var diagnostics = await RunAnalyzerAsync(new DapperWithoutTenantAnalyzer(), source);
         diagnostics.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task ELMT003_SemanticDbConnectionReceiver_NamedSessionWithoutHeuristic_EmitsDiagnostic()
+    {
+        var source = @"
+using System.Data;
+using System.Threading.Tasks;
+using Dapper;
+using EricksonLopez.MultiTenancy;
+
+public class SessionRepo
+{
+    private readonly ITenantContext _tenantContext;
+    private readonly IDbConnection _session;
+
+    public SessionRepo(ITenantContext tenantContext, IDbConnection session)
+    {
+        _tenantContext = tenantContext;
+        _session = session;
+    }
+
+    public async Task GetInvoicesAsync()
+    {
+        await _session.QueryAsync(""SELECT * FROM invoices"");
+    }
 }
+";
+        var diagnostics = await RunAnalyzerAsync(new DapperWithoutTenantAnalyzer(), source);
+        diagnostics.Should().ContainSingle(d => d.Id == "ELMT003");
+    }
+
+    [Fact]
+    public async Task ELMT004_PostgresSuperuserConnectionString_ReportsDiagnostic()
+    {
+        var source = @"
+public class DbConfig
+{
+    public const string Connection = ""Host=localhost;Database=myapp;User Id=postgres;Password=secret"";
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new SuperuserConnectionStringAnalyzer(), source);
+        diagnostics.Should().ContainSingle(d => d.Id == "ELMT004");
+        diagnostics[0].GetMessage(System.Globalization.CultureInfo.InvariantCulture).Should().Be("Connection string contains superuser credential 'postgres', which bypasses multi-tenant Row-Level Security isolation");
+        diagnostics[0].Descriptor.Title.ToString(System.Globalization.CultureInfo.InvariantCulture).Should().Be("Do not use database superuser accounts in multi-tenant connection strings");
+        diagnostics[0].Descriptor.Description.ToString(System.Globalization.CultureInfo.InvariantCulture).Should().Be("Database superuser accounts (such as 'postgres', 'sa', 'root') bypass PostgreSQL Row-Level Security (BYPASSRLS) and SQL Server session context isolation. Multi-tenant applications must use non-superuser accounts.");
+    }
+
+    [Fact]
+    public async Task ELMT004_SqlServerSuperuserConnectionString_ReportsDiagnostic()
+    {
+        var source = @"
+public class DbConfig
+{
+    public const string Connection = ""Server=localhost;Database=myapp;User Id=sa;Password=secret"";
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new SuperuserConnectionStringAnalyzer(), source);
+        diagnostics.Should().ContainSingle(d => d.Id == "ELMT004");
+    }
+
+    [Fact]
+    public async Task ELMT004_ApplicationUserConnectionString_NoDiagnostic()
+    {
+        var source = @"
+public class DbConfig
+{
+    public const string Connection = ""Host=localhost;Database=myapp;User Id=app_tenant_user;Password=secret"";
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new SuperuserConnectionStringAnalyzer(), source);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ELMT004_NonConnectionStringLiteral_NoDiagnostic()
+    {
+        var source = @"
+public class OtherConfig
+{
+    public const string Message = ""Welcome to our tenant application!"";
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new SuperuserConnectionStringAnalyzer(), source);
+        diagnostics.Should().BeEmpty();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // ELMT001: TenantContextStaticFieldCodeFixProvider Tests
+    // ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public void ELMT001_CodeFixProvider_Properties_AreConfiguredCorrectly()
+    {
+        var provider = new TenantContextStaticFieldCodeFixProvider();
+        provider.FixableDiagnosticIds.Should().ContainSingle().Which.Should().Be("ELMT001");
+        provider.GetFixAllProvider().Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task ELMT001_CodeFix_RemovesStaticModifier()
+    {
+        var source = @"
+using EricksonLopez.MultiTenancy;
+
+public class OrderService
+{
+    private static ITenantContext _staticContext;
+}
+";
+        var syntaxTree = CSharpSyntaxTree.ParseText(source);
+#pragma warning disable IL3000
+        var coreAssemblyPath = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
+        var references = new[]
+        {
+            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+            MetadataReference.CreateFromFile(Path.Combine(coreAssemblyPath, "System.Runtime.dll")),
+            MetadataReference.CreateFromFile(typeof(ITenantContext).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(TenantId).Assembly.Location),
+        };
+#pragma warning restore IL3000
+
+        var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
+        var compilation = CSharpCompilation.Create("TestAssembly", new[] { syntaxTree }, references, compilationOptions);
+        var analyzer = new TenantContextStaticFieldAnalyzer();
+        var compilationWithAnalyzers = compilation.WithAnalyzers(ImmutableArray.Create<DiagnosticAnalyzer>(analyzer));
+        var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+        diagnostics.Should().ContainSingle(d => d.Id == "ELMT001");
+
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var solution = workspace.CurrentSolution
+            .AddProject(projectId, "TestProject", "TestProject", LanguageNames.CSharp)
+            .AddMetadataReferences(projectId, references)
+            .AddDocument(documentId, "Test.cs", source);
+        var document = solution.GetDocument(documentId)!;
+
+        var actions = new List<CodeAction>();
+        var context = new CodeFixContext(document, diagnostics[0], (a, _) => actions.Add(a), CancellationToken.None);
+
+        var provider = new TenantContextStaticFieldCodeFixProvider();
+        await provider.RegisterCodeFixesAsync(context);
+
+        actions.Should().ContainSingle();
+        actions[0].Title.Should().Be("Remove static modifier from tenant context field");
+        actions[0].EquivalenceKey.Should().Be("Remove static modifier from tenant context field");
+
+        var operations = await actions[0].GetOperationsAsync(CancellationToken.None);
+        var changedSolution = operations.OfType<ApplyChangesOperation>().Single().ChangedSolution;
+        var changedDoc = changedSolution.GetDocument(documentId)!;
+        var changedText = (await changedDoc.GetTextAsync()).ToString();
+
+        changedText.Should().NotContain("static ITenantContext");
+        changedText.Should().Contain("private ITenantContext _staticContext;");
+    }
+
+    [Fact]
+    public async Task ELMT001_CodeFix_NonFieldDiagnostic_DoesNotRegisterCodeFix()
+    {
+        var source = "public class OrderService {}";
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var solution = workspace.CurrentSolution
+            .AddProject(projectId, "TestProject", "TestProject", LanguageNames.CSharp)
+            .AddDocument(documentId, "Test.cs", source);
+        var document = solution.GetDocument(documentId)!;
+        var syntaxTree = await document.GetSyntaxTreeAsync();
+        var descriptor = new TenantContextStaticFieldAnalyzer().SupportedDiagnostics[0];
+        var diagnostic = Diagnostic.Create(descriptor, Location.Create(syntaxTree!, new Microsoft.CodeAnalysis.Text.TextSpan(0, 5)), "OrderService", "ITenantContext");
+
+        var actions = new List<CodeAction>();
+        var context = new CodeFixContext(document, diagnostic, (a, _) => actions.Add(a), CancellationToken.None);
+        var provider = new TenantContextStaticFieldCodeFixProvider();
+        await provider.RegisterCodeFixesAsync(context);
+
+        actions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ELMT001_CodeFix_NonStaticFieldDiagnostic_ReturnsDocumentUnchanged()
+    {
+        var source = @"
+using EricksonLopez.MultiTenancy;
+
+public class OrderService
+{
+    private ITenantContext _instanceContext;
+}
+";
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+        var solution = workspace.CurrentSolution
+            .AddProject(projectId, "TestProject", "TestProject", LanguageNames.CSharp)
+            .AddDocument(documentId, "Test.cs", source);
+        var document = solution.GetDocument(documentId)!;
+        var syntaxTree = (await document.GetSyntaxTreeAsync())!;
+        var descriptor = new TenantContextStaticFieldAnalyzer().SupportedDiagnostics[0];
+        var fieldToken = syntaxTree.GetRoot().DescendantTokens().First(t => t.ValueText == "_instanceContext");
+        var diagnostic = Diagnostic.Create(descriptor, Location.Create(syntaxTree, fieldToken.Span), "_instanceContext", "ITenantContext");
+
+        var actions = new List<CodeAction>();
+        var context = new CodeFixContext(document, diagnostic, (a, _) => actions.Add(a), CancellationToken.None);
+        var provider = new TenantContextStaticFieldCodeFixProvider();
+        await provider.RegisterCodeFixesAsync(context);
+
+        actions.Should().ContainSingle();
+        var operations = await actions[0].GetOperationsAsync(CancellationToken.None);
+        var changedSolution = operations.OfType<ApplyChangesOperation>().Single().ChangedSolution;
+        var changedDoc = changedSolution.GetDocument(documentId)!;
+        var changedText = (await changedDoc.GetTextAsync()).ToString();
+
+        changedText.Should().Be(source);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // ELMT004: Additional Superuser Connection String Tests
+    // ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ELMT004_ShortOrWhitespaceString_NoDiagnostic()
+    {
+        var source = @"
+public class DbConfig
+{
+    public const string Short = ""Host=x;"";
+    public const string Spaces = ""             "";
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new SuperuserConnectionStringAnalyzer(), source);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ELMT004_SuperuserWithoutTrailingSemicolon_ReportsDiagnostic()
+    {
+        var source = @"
+public class DbConfig
+{
+    public const string Connection = ""Server=localhost;Database=myapp;User Id=postgres"";
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new SuperuserConnectionStringAnalyzer(), source);
+        diagnostics.Should().ContainSingle(d => d.Id == "ELMT004");
+    }
+
+    [Fact]
+    public async Task ELMT004_VariousSuperuserFormats_ReportsDiagnostic()
+    {
+        var source = @"
+public class DbConfig
+{
+    public const string Conn1 = ""Server=localhost;Database=mydb;uid=root;Password=secret"";
+    public const string Conn2 = ""Server=localhost;Database=mydb;username=postgres;Password=secret"";
+    public const string Conn3 = ""Server=localhost;Database=mydb;user=sa;Password=secret"";
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new SuperuserConnectionStringAnalyzer(), source);
+        diagnostics.Should().HaveCount(3);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // ELMT003: Additional Dapper Query Without Tenant Tests
+    // ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ELMT003_InterfaceExtendingIDbConnection_ReportsDiagnostic()
+    {
+        var source = @"
+using System.Data;
+using System.Threading.Tasks;
+using Dapper;
+using EricksonLopez.MultiTenancy;
+
+public interface ICustomAppSession : IDbConnection
+{
+}
+
+public class CustomSessionRepo
+{
+    private readonly ITenantContext _ctx;
+    public CustomSessionRepo(ITenantContext ctx) => _ctx = ctx;
+
+    public async Task RunAsync(ICustomAppSession session)
+    {
+        await session.QueryAsync(""SELECT 1"");
+    }
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new DapperWithoutTenantAnalyzer(), source);
+        diagnostics.Should().ContainSingle(d => d.Id == "ELMT003");
+    }
+
+    [Fact]
+    public async Task ELMT003_VariableAssignment_WithTenant_NoDiagnostic()
+    {
+        var source = @"
+using System.Data;
+using System.Threading.Tasks;
+using Dapper;
+using EricksonLopez.MultiTenancy;
+
+public class AssignedRepo
+{
+    private readonly ITenantContext _ctx;
+    public AssignedRepo(ITenantContext ctx) => _ctx = ctx;
+
+    public async Task RunAsync(IDbConnection db)
+    {
+        object p = null!;
+        p = new { TenantId = _ctx.Tenant.Id };
+        await db.QueryAsync(""SELECT 1"", p);
+    }
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new DapperWithoutTenantAnalyzer(), source);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ELMT003_StaticMethodWithTenant_ConfiguringVariable_NoDiagnostic()
+    {
+        var source = @"
+using System.Data;
+using System.Threading.Tasks;
+using Dapper;
+using EricksonLopez.MultiTenancy;
+
+public static class ParameterHelper
+{
+    public static void WithTenant(object param) {}
+}
+
+public class StaticHelperRepo
+{
+    private readonly ITenantContext _ctx;
+    public StaticHelperRepo(ITenantContext ctx) => _ctx = ctx;
+
+    public async Task RunAsync(IDbConnection db)
+    {
+        var p = new object();
+        ParameterHelper.WithTenant(p);
+        await db.QueryAsync(""SELECT 1"", p);
+    }
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new DapperWithoutTenantAnalyzer(), source);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ELMT003_LocalMethodWithTenant_ConfiguringVariable_NoDiagnostic()
+    {
+        var source = @"
+using System.Data;
+using System.Threading.Tasks;
+using Dapper;
+using EricksonLopez.MultiTenancy;
+
+public class LocalHelperRepo
+{
+    private readonly ITenantContext _ctx;
+    public LocalHelperRepo(ITenantContext ctx) => _ctx = ctx;
+
+    public async Task RunAsync(IDbConnection db)
+    {
+        var p = new object();
+        WithTenant(p);
+        await db.QueryAsync(""SELECT 1"", p);
+    }
+
+    private void WithTenant(object param) {}
+}
+";
+        var diagnostics = await RunAnalyzerAsync(new DapperWithoutTenantAnalyzer(), source);
+        diagnostics.Should().BeEmpty();
+    }
+}
+
 

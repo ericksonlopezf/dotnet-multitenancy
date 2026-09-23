@@ -5,11 +5,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using EricksonLopez.MultiTenancy.AspNetCore;
+using EricksonLopez.MultiTenancy.AspNetCore.Options;
 using EricksonLopez.MultiTenancy.AspNetCore.Strategies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Xunit;
 
@@ -326,4 +329,170 @@ public class AspNetCoreExtensionsTests
         var routeHandler = app.MapGet("/test", () => "OK");
         routeHandler.RequireTenant().Should().NotBeNull();
     }
+
+    [Fact]
+    public void AddTenantRouteConstraint_ValidAndInvalidCalls()
+    {
+        var services = new ServiceCollection();
+        services.AddTenantRouteConstraint();
+        services.AddTenantRouteConstraint("custom_tenant_constraint");
+
+        var actNull = () => ((IServiceCollection)null!).AddTenantRouteConstraint();
+        actNull.Should().Throw<ArgumentNullException>();
+
+        var actEmpty = () => services.AddTenantRouteConstraint("   ");
+        actEmpty.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void AddHostNameTenantStrategy_WithConfigureOptions_RegistersAndConfigures()
+    {
+        var services = new ServiceCollection();
+        services.AddHttpContextAccessor();
+        services.AddHostNameTenantStrategy(options =>
+        {
+            options.BaseDomain = "example.com";
+        });
+
+        var sp = services.BuildServiceProvider();
+        var strategy = sp.GetServices<ITenantResolutionStrategy>().FirstOrDefault(s => s is HostNameTenantResolutionStrategy);
+        strategy.Should().NotBeNull();
+
+        var actNull = () => ((IServiceCollection)null!).AddHostNameTenantStrategy(opt => { });
+        actNull.Should().Throw<ArgumentNullException>();
+
+        var actNullOpt = () => services.AddHostNameTenantStrategy(null!);
+        actNullOpt.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void AddInternalHeaderTenantResolution_RegistersStrategy()
+    {
+        var services = new ServiceCollection();
+        services.AddHttpContextAccessor();
+        services.AddInternalHeaderTenantResolution("super-secret");
+
+        var sp = services.BuildServiceProvider();
+        var strategy = sp.GetServices<ITenantResolutionStrategy>().FirstOrDefault(s => s is InternalGatewayHeaderTenantResolutionStrategy);
+        strategy.Should().NotBeNull();
+        strategy!.StrategyName.Should().Be("InternalGatewayHeader");
+        strategy.Source.Should().Be(TenantResolutionSource.Header);
+
+        var actNull = () => ((IServiceCollection)null!).AddInternalHeaderTenantResolution("secret");
+        actNull.Should().Throw<ArgumentNullException>();
+
+        var actEmpty = () => services.AddInternalHeaderTenantResolution("   ");
+        actEmpty.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void StrategyProperties_VerifyAllExplicitValues()
+    {
+        var httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        var sp = Substitute.For<IServiceProvider>();
+
+        var claimStrat = new ClaimTenantResolutionStrategy(httpContextAccessor);
+        claimStrat.StrategyName.Should().Be("Claims");
+        claimStrat.Source.Should().Be(TenantResolutionSource.JwtClaim);
+
+        var headerStrat = new HeaderTenantResolutionStrategy(httpContextAccessor);
+        headerStrat.StrategyName.Should().Be("Header");
+        headerStrat.Source.Should().Be(TenantResolutionSource.Header);
+
+        var hostStrat = new HostNameTenantResolutionStrategy(httpContextAccessor, sp);
+        hostStrat.StrategyName.Should().Be("HostName");
+        hostStrat.Source.Should().Be(TenantResolutionSource.Host);
+
+        var routeStrat = new RouteTenantResolutionStrategy(httpContextAccessor);
+        routeStrat.StrategyName.Should().Be("Route");
+        routeStrat.Source.Should().Be(TenantResolutionSource.Route);
+
+        var basePathStrat = new BasePathTenantResolutionStrategy(httpContextAccessor);
+        basePathStrat.StrategyName.Should().Be("BasePath");
+        basePathStrat.Source.Should().Be(TenantResolutionSource.Route);
+
+        var gatewayStrat = new InternalGatewayHeaderTenantResolutionStrategy(httpContextAccessor, "secret");
+        gatewayStrat.StrategyName.Should().Be("InternalGatewayHeader");
+        gatewayStrat.Source.Should().Be(TenantResolutionSource.Header);
+    }
+
+    [Fact]
+    public void AddAspNetCoreMultiTenancy_WithOptions_ConfiguresOptions()
+    {
+        var services = new ServiceCollection();
+        bool optionsConfigured = false;
+        services.AddAspNetCoreMultiTenancy(options =>
+        {
+            optionsConfigured = true;
+        });
+
+        var sp = services.BuildServiceProvider();
+        _ = sp.GetRequiredService<IOptions<TenantResolutionMiddlewareOptions>>().Value;
+        optionsConfigured.Should().BeTrue();
+    }
+
+    [Fact]
+    public void AddTenantRouteConstraint_ResolvesRouteOptions_InvokesConfigureCallback()
+    {
+        var services = new ServiceCollection();
+        services.AddTenantRouteConstraint("tenant");
+        var sp = services.BuildServiceProvider();
+        var routeOptions = sp.GetRequiredService<IOptions<RouteOptions>>().Value;
+        routeOptions.ConstraintMap.Should().ContainKey("tenant");
+    }
+
+    [Fact]
+    public async Task InternalGatewayHeaderTenantResolutionStrategy_ValidSecret_MissingTenantHeader_ReturnsFailure()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Gateway-Secret"] = "secret-123";
+
+        var accessor = Substitute.For<IHttpContextAccessor>();
+        accessor.HttpContext.Returns(httpContext);
+
+        var strategy = new InternalGatewayHeaderTenantResolutionStrategy(accessor, "secret-123", "X-Tenant-ID", "X-Gateway-Secret");
+        var result = await strategy.ResolveTenantIdAsync();
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Tenant.ResolutionFailed");
+    }
+
+    [Fact]
+    public async Task InternalGatewayHeaderTenantResolutionStrategy_ValidSecret_InvalidTenantIdHeader_ReturnsFailure()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Gateway-Secret"] = "secret-123";
+        httpContext.Request.Headers["X-Tenant-ID"] = "not-a-valid-guid-id";
+
+        var accessor = Substitute.For<IHttpContextAccessor>();
+        accessor.HttpContext.Returns(httpContext);
+
+        var strategy = new InternalGatewayHeaderTenantResolutionStrategy(accessor, "secret-123", "X-Tenant-ID", "X-Gateway-Secret");
+        var result = await strategy.ResolveTenantIdAsync();
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Tenant.InvalidId");
+    }
+
+    [Fact]
+    public async Task HostNameTenantResolutionStrategy_NonLookupStore_NonGuidSubdomain_LogsSkippedFallback()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Host = new HostString("subdomain.example.com");
+
+        var accessor = Substitute.For<IHttpContextAccessor>();
+        accessor.HttpContext.Returns(httpContext);
+
+        var plainStore = Substitute.For<ITenantStore>();
+        var sp = new ServiceCollection()
+            .AddSingleton<ITenantStore>(plainStore)
+            .BuildServiceProvider();
+
+        var logger = Substitute.For<ILogger<HostNameTenantResolutionStrategy>>();
+        var strategy = new HostNameTenantResolutionStrategy(accessor, sp, logger: logger);
+
+        var result = await strategy.ResolveTenantIdAsync();
+        result.IsFailure.Should().BeTrue();
+    }
 }
+

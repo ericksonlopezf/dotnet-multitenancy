@@ -76,6 +76,6 @@ public sealed class RlsSessionContextBenchmarks : IDisposable
     [Benchmark]
     public async Task SqlServer_SetSessionContext()
     {
-        await _connection.SetTenantSessionContextAsync(_tenantContext, readOnly: true);
+        await _connection.SetTenantSessionContextAsync(_transaction, _tenantContext, readOnly: true);
     }
 }

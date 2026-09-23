@@ -28,7 +28,7 @@ namespace EricksonLopez.MultiTenancy.MariaDb;
 public static class MariaDbTenantExtensions
 {
     /// <summary>
-    /// The default MariaDB session variable name used to store the tenant identifier.
+    /// Specifies the default MariaDB session variable name used to store the tenant identifier.
     /// </summary>
     public const string DefaultTenantVariableName = "app_tenant_id";
 
@@ -36,24 +36,32 @@ public static class MariaDbTenantExtensions
     /// Establishes the tenant context in MariaDB by setting a session user variable.
     /// </summary>
     /// <param name="connection">The open database connection.</param>
+    /// <param name="transaction">The active MariaDB transaction.</param>
     /// <param name="tenantContext">The resolved tenant context containing the tenant identifier.</param>
-    /// <param name="transaction">The optional active MariaDB transaction.</param>
     /// <param name="variableName">The user variable name (without the '@' prefix). Defaults to <see cref="DefaultTenantVariableName"/>.</param>
     /// <param name="cancellationToken">A token that can be used to cancel the asynchronous operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="connection"/> or <paramref name="tenantContext"/> is <see langword="null"/></exception>
     /// <exception cref="ArgumentException"><paramref name="variableName"/> is <see langword="null"/>, empty, or consists only of white-space characters</exception>
+    /// <exception cref="InvalidOperationException"><paramref name="transaction"/> is <see langword="null"/></exception>
     /// <exception cref="TenantNotFoundException">No tenant has been resolved in the current context or the tenant identifier is empty</exception>
     [SuppressMessage("Security", "S2077:Formatting SQL queries is an anti-pattern and can lead to SQL injection vulnerabilities", Justification = "Variable name is validated and cannot be parameterized in MariaDB SET statement syntax; the value is safely parameterized via @Value.")]
     public static Task SetTenantSessionVariableAsync(
         this DbConnection connection,
+        DbTransaction transaction,
         ITenantContext tenantContext,
-        DbTransaction? transaction = null,
         string variableName = DefaultTenantVariableName,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(tenantContext);
+
+        if (transaction is null)
+        {
+            throw new InvalidOperationException(
+                "Setting MariaDB session variable requires an active transaction to prevent context leakage across connection pool reuse. " +
+                "Call BeginTenantTransactionAsync() or BeginTransactionAsync() before calling SetTenantSessionVariableAsync().");
+        }
 
         if (string.IsNullOrWhiteSpace(variableName))
         {
@@ -119,6 +127,37 @@ public static class MariaDbTenantExtensions
     }
 
     /// <summary>
+    /// Synchronously resets the MariaDB user variable holding the tenant identifier to <c>NULL</c> to prevent context leakage across connection pool reuse.
+    /// </summary>
+    /// <param name="connection">The open database connection.</param>
+    /// <param name="transaction">The optional active MariaDB transaction.</param>
+    /// <param name="variableName">The user variable name (without the '@' prefix). Defaults to <see cref="DefaultTenantVariableName"/>.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="connection"/> is <see langword="null"/></exception>
+    /// <exception cref="ArgumentException"><paramref name="variableName"/> is <see langword="null"/>, empty, or consists only of white-space characters</exception>
+    [SuppressMessage("Security", "S2077:Formatting SQL queries is an anti-pattern and can lead to SQL injection vulnerabilities", Justification = "Variable name is validated and cannot be parameterized in MariaDB SET statement syntax; the value is set to literal NULL.")]
+    public static void ResetTenantSessionVariable(
+        this DbConnection connection,
+        DbTransaction? transaction = null,
+        string variableName = DefaultTenantVariableName)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+
+        if (string.IsNullOrWhiteSpace(variableName))
+        {
+            throw new ArgumentException("Variable name must not be null or whitespace.", nameof(variableName));
+        }
+
+        var cleanVarName = variableName.TrimStart('@');
+        var sql = $"SET @{cleanVarName} = NULL;";
+
+        var command = new CommandDefinition(
+            sql,
+            transaction: transaction);
+
+        connection.Execute(command);
+    }
+
+    /// <summary>
     /// Opens a new transaction on the provided MariaDB connection and sets the tenant session variable atomically.
     /// </summary>
     /// <param name="connection">The database connection (opened automatically if not already open).</param>
@@ -145,20 +184,35 @@ public static class MariaDbTenantExtensions
         }
 
         // Stryker disable once boolean
-        var transaction = await connection.BeginTransactionAsync(isolationLevel, cancellationToken).ConfigureAwait(false);
+        var rawTransaction = await connection.BeginTransactionAsync(isolationLevel, cancellationToken).ConfigureAwait(false);
+        var transaction = new MariaDbTenantSessionTransaction(
+            rawTransaction,
+            connection,
+            conn => conn.ResetTenantSessionVariableAsync(variableName: variableName, cancellationToken: cancellationToken),
+            conn => conn.ResetTenantSessionVariable(variableName: variableName));
 
         try
         {
             // Stryker disable once boolean
-            await connection.SetTenantSessionVariableAsync(tenantContext, transaction, variableName, cancellationToken)
+            await connection.SetTenantSessionVariableAsync(transaction, tenantContext, variableName, cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch
+        catch (Exception)
         {
-            // Stryker disable once boolean
-            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
-            // Stryker disable once boolean
-            await transaction.DisposeAsync().ConfigureAwait(false);
+            try
+            {
+                // Stryker disable once boolean
+                await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // Ignore rollback exceptions if the connection is already dead
+            }
+            finally
+            {
+                // Stryker disable once boolean
+                await transaction.DisposeAsync().ConfigureAwait(false);
+            }
             throw;
         }
 

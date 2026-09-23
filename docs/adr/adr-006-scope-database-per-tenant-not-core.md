@@ -3,6 +3,9 @@
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 `ITenantInfo.ConnectionString` implies that database-per-tenant is the primary deployment model. Several features (connection switching, per-tenant schema creation, per-tenant migrations) were considered as core library capabilities.
 

@@ -92,5 +92,25 @@ public static class EnterpriseArchitectureDemo
         // 5. Demonstrate Reset() — clears the context for re-use across multiple test steps
         quickContext.Reset();
         Console.WriteLine($"After reset: IsResolved={quickContext.IsResolved}, Source={quickContext.Source}");
+
+        // 6. PlatformAdminContext — authorized cross-tenant administration bypass
+        //    Used in platform engineering tools that need to operate outside any tenant boundary.
+        var adminCtx = new PlatformAdminContext(isPlatformAdmin: true, auditReason: "Scheduled maintenance sweep");
+        Console.WriteLine($"PlatformAdminContext: IsPlatformAdmin={adminCtx.IsPlatformAdmin}, AuditReason='{adminCtx.AuditReason}'");
+
+        // PlatformAdminContext.None is the default sentinel representing non-admin execution
+        IPlatformAdminContext nonAdmin = PlatformAdminContext.None;
+        Console.WriteLine($"PlatformAdminContext.None.IsPlatformAdmin={nonAdmin.IsPlatformAdmin}");
+
+        // IPlatformAdminContext is injected via DI when you need to check platform admin status
+        // in a handler without breaking normal tenant resolution flow:
+        //   services.AddSingleton<IPlatformAdminContext>(sp => PlatformAdminContext.None);
+        //   public class MyHandler(IPlatformAdminContext adminCtx, ITenantContext tenant) { ... }
+
+        // 7. IOrganizationContext — composite interface (ITenantContext + ICompanyContext + IBranchContext)
+        //    Designed for hierarchical enterprise structures with Company → Branch → Tenant layers.
+        //    Register via DI alongside ITenantContext for handlers that need the full organizational hierarchy:
+        //      services.AddScoped<IOrganizationContext, YourOrganizationContextImplementation>();
+        Console.WriteLine("IOrganizationContext combines ITenantContext + ICompanyContext + IBranchContext for enterprise multi-tier isolation.");
     }
 }

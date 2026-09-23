@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Description>Testing helpers, test doubles, and fluent builders for EricksonLopez.MultiTenancy.</Description>
-    <PackageTags>$(CommonPackageTags);testing;test-doubles;mocks;fakes;unit-testing;integration-testing;native-aot</PackageTags>
+    <PackageTags>$(CommonPackageTags);testing;test-doubles;mocks;fakes;unit-testing;integration-testing;fluent-builder;native-aot</PackageTags>
     <IsAotCompatible>true</IsAotCompatible>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <NoWarn>$(NoWarn);IL2093;IL2073</NoWarn>

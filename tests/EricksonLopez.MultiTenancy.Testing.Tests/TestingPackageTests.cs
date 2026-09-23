@@ -67,7 +67,18 @@ public sealed class TestingPackageTests
 
         context.IsResolved.Should().BeFalse();
         var act = () => _ = context.RequiredTenant;
-        act.Should().Throw<TenantNotFoundException>();
+        act.Should().Throw<TenantNotFoundException>()
+            .WithMessage("The resolved tenant is invalid or has an empty identifier.");
+    }
+
+    [Fact]
+    public void TestTenantContext_TenantInactive_RequiredTenantThrowsTenantInactiveException()
+    {
+        var tenant = new TenantInfo(ExpectedTenantId, "InactiveTenant", isActive: false);
+        var context = new TestTenantContext(tenant);
+
+        var act = () => _ = context.RequiredTenant;
+        act.Should().Throw<TenantInactiveException>();
     }
 
     [Theory]

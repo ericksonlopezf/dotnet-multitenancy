@@ -7,11 +7,17 @@ using System.Linq;
 namespace EricksonLopez.MultiTenancy.Sqlite;
 
 /// <summary>
-/// Resolves per-tenant SQLite connection strings from a parameterized template
+/// Provides a factory that resolves per-tenant SQLite connection strings from a parameterized template
 /// and ensures that the target database file directories exist before returning a connection.
 /// </summary>
 public sealed class SqliteTenantConnectionFactory : ISqliteTenantConnectionFactory
 {
+    private static readonly char[] _invalidFileNameChars =
+    [
+        .. Path.GetInvalidFileNameChars(),
+        '*', '?', ':', '"', '<', '>', '|', '/', '\\'
+    ];
+
     private readonly string _connectionStringTemplate;
 
     /// <summary>
@@ -44,8 +50,25 @@ public sealed class SqliteTenantConnectionFactory : ISqliteTenantConnectionFacto
 
         var tenantIdStr = tenant.Id.Value.ToString();
         var connectionString = _connectionStringTemplate
-            .Replace("{TenantId}", tenantIdStr, StringComparison.OrdinalIgnoreCase)
-            .Replace("{Name}", tenant.Name, StringComparison.OrdinalIgnoreCase);
+            .Replace("{TenantId}", tenantIdStr, StringComparison.OrdinalIgnoreCase);
+
+        if (_connectionStringTemplate.Contains("{Name}", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(tenant.Name))
+            {
+                throw new ArgumentException("Tenant name must not be null or whitespace when {Name} placeholder is used in connection string template.", nameof(tenant));
+            }
+
+            if (tenant.Name.Contains("..", StringComparison.Ordinal) ||
+                tenant.Name.IndexOfAny(_invalidFileNameChars) >= 0)
+            {
+                throw new ArgumentException(
+                    $"Tenant name '{tenant.Name}' contains invalid path characters or directory traversal sequences.",
+                    nameof(tenant));
+            }
+
+            connectionString = connectionString.Replace("{Name}", tenant.Name, StringComparison.OrdinalIgnoreCase);
+        }
 
         return connectionString;
     }

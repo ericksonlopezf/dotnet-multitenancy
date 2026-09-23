@@ -1,1 +1,84 @@
 #nullable enable
+EricksonLopez.MultiTenancy.AmbientTenantContextHolder
+EricksonLopez.MultiTenancy.DefaultTenantScopeFactory.CreateScope(EricksonLopez.MultiTenancy.ITenantInfo! tenant, EricksonLopez.MultiTenancy.TenantResolutionSource source = EricksonLopez.MultiTenancy.TenantResolutionSource.ExplicitScope) -> EricksonLopez.MultiTenancy.ITenantScope!
+EricksonLopez.MultiTenancy.DefaultTenantScopeFactory.DefaultTenantScopeFactory(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory) -> void
+EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheck
+EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheck.CheckHealthAsync(Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckContext! context, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult>!
+EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheck.MultiTenancyHealthCheck(EricksonLopez.MultiTenancy.ITenantStore? tenantStore = null, Microsoft.Extensions.Options.IOptions<EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheckOptions!>? options = null) -> void
+EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheckOptions
+EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheckOptions.FailureStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus
+EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheckOptions.FailureStatus.set -> void
+EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheckOptions.IncludeDiagnosticData.get -> bool
+EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheckOptions.IncludeDiagnosticData.set -> void
+EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheckOptions.MultiTenancyHealthCheckOptions() -> void
+EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheckOptions.StoreProbe.get -> System.Func<EricksonLopez.MultiTenancy.ITenantStore!, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>!>?
+EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheckOptions.StoreProbe.set -> void
+EricksonLopez.MultiTenancy.InMemoryTenantStore.InMemoryTenantStore() -> void
+EricksonLopez.MultiTenancy.InMemoryTenantStore.InMemoryTenantStore(int maxCapacity) -> void
+EricksonLopez.MultiTenancy.InMemoryTenantStore.InMemoryTenantStore(System.Collections.Generic.IEnumerable<EricksonLopez.MultiTenancy.TenantInfo!>! tenants) -> void
+EricksonLopez.MultiTenancy.InMemoryTenantStore.InMemoryTenantStore(System.Collections.Generic.IEnumerable<EricksonLopez.MultiTenancy.TenantInfo!>! tenants, int maxCapacity) -> void
+EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant>.AddOrUpdate(TTenant! tenant) -> void
+EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant>.Clear() -> void
+EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant>.GetAllStreamAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TTenant!>!
+EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant>.GetTenantAsync(EricksonLopez.MultiTenancy.TenantId tenantId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EricksonLopez.Result.Result<TTenant!>>!
+EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant>.GetTenantByIdentifierAsync(string! identifier, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EricksonLopez.Result.Result<TTenant!>>!
+EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant>.InMemoryTenantStore() -> void
+EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant>.InMemoryTenantStore(int maxCapacity) -> void
+EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant>.InMemoryTenantStore(System.Collections.Generic.IEnumerable<TTenant!>! tenants) -> void
+EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant>.InMemoryTenantStore(System.Collections.Generic.IEnumerable<TTenant!>! tenants, int maxCapacity) -> void
+EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant>.TryAdd(TTenant! tenant) -> bool
+EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant>.TryRemove(EricksonLopez.MultiTenancy.TenantId tenantId) -> bool
+EricksonLopez.MultiTenancy.MultiTenancyHealthCheckExtensions
+EricksonLopez.MultiTenancy.PlatformAdminContext
+EricksonLopez.MultiTenancy.PlatformAdminContext.AuditReason.get -> string?
+EricksonLopez.MultiTenancy.PlatformAdminContext.IsPlatformAdmin.get -> bool
+EricksonLopez.MultiTenancy.PlatformAdminContext.PlatformAdminContext(bool isPlatformAdmin = true, string? auditReason = null) -> void
+EricksonLopez.MultiTenancy.ScopedTenantContextAccessor.ScopedTenantContextAccessor() -> void
+EricksonLopez.MultiTenancy.ScopedTenantContextAccessor.TenantContext.get -> EricksonLopez.MultiTenancy.ITenantContext?
+EricksonLopez.MultiTenancy.ScopedTenantContextAccessor.TenantContext.set -> void
+EricksonLopez.MultiTenancy.Stores.CachedTenantStore<TTenant>
+EricksonLopez.MultiTenancy.Stores.CachedTenantStore<TTenant>.CachedTenantStore(EricksonLopez.MultiTenancy.ITenantStore<TTenant!>! innerStore, Microsoft.Extensions.Caching.Memory.IMemoryCache! cache, Microsoft.Extensions.Options.IOptions<EricksonLopez.MultiTenancy.Stores.CachedTenantStoreOptions!>! options) -> void
+EricksonLopez.MultiTenancy.Stores.CachedTenantStore<TTenant>.GetTenantAsync(EricksonLopez.MultiTenancy.TenantId tenantId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EricksonLopez.Result.Result<TTenant!>>!
+EricksonLopez.MultiTenancy.Stores.CachedTenantStore<TTenant>.GetTenantByIdentifierAsync(string! identifier, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EricksonLopez.Result.Result<TTenant!>>!
+EricksonLopez.MultiTenancy.Stores.CachedTenantStoreExtensions
+EricksonLopez.MultiTenancy.Stores.CachedTenantStoreOptions
+EricksonLopez.MultiTenancy.Stores.CachedTenantStoreOptions.AbsoluteExpirationRelativeToNow.get -> System.TimeSpan
+EricksonLopez.MultiTenancy.Stores.CachedTenantStoreOptions.AbsoluteExpirationRelativeToNow.set -> void
+EricksonLopez.MultiTenancy.Stores.CachedTenantStoreOptions.CachedTenantStoreOptions() -> void
+EricksonLopez.MultiTenancy.Stores.CachedTenantStoreOptions.EnableNegativeCaching.get -> bool
+EricksonLopez.MultiTenancy.Stores.CachedTenantStoreOptions.EnableNegativeCaching.set -> void
+EricksonLopez.MultiTenancy.Stores.CachedTenantStoreOptions.NegativeCacheExpirationRelativeToNow.get -> System.TimeSpan
+EricksonLopez.MultiTenancy.Stores.CachedTenantStoreOptions.NegativeCacheExpirationRelativeToNow.set -> void
+EricksonLopez.MultiTenancy.Stores.CachedTenantStoreOptions.SlidingExpiration.get -> System.TimeSpan?
+EricksonLopez.MultiTenancy.Stores.CachedTenantStoreOptions.SlidingExpiration.set -> void
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStore<TTenant>
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStore<TTenant>.GetTenantAsync(EricksonLopez.MultiTenancy.TenantId tenantId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EricksonLopez.Result.Result<TTenant!>>!
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStore<TTenant>.GetTenantByIdentifierAsync(string! identifier, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<EricksonLopez.Result.Result<TTenant!>>!
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStore<TTenant>.HttpRemoteTenantStore(System.Net.Http.HttpClient! httpClient, Microsoft.Extensions.Options.IOptions<EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStoreOptions!>! options) -> void
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStoreOptions
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStoreOptions.BaseAddress.get -> System.Uri?
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStoreOptions.BaseAddress.set -> void
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStoreOptions.EndpointTemplate.get -> string!
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStoreOptions.EndpointTemplate.set -> void
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStoreOptions.HttpRemoteTenantStoreOptions() -> void
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStoreOptions.IdentifierEndpointTemplate.get -> string!
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStoreOptions.IdentifierEndpointTemplate.set -> void
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStoreOptions.Timeout.get -> System.TimeSpan
+EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStoreOptions.Timeout.set -> void
+EricksonLopez.MultiTenancy.TenantContext<TTenant>
+EricksonLopez.MultiTenancy.TenantContext<TTenant>.IsResolved.get -> bool
+EricksonLopez.MultiTenancy.TenantContext<TTenant>.Source.get -> EricksonLopez.MultiTenancy.TenantResolutionSource
+EricksonLopez.MultiTenancy.TenantContext<TTenant>.Tenant.get -> TTenant?
+EricksonLopez.MultiTenancy.TenantContext<TTenant>.TenantContext(TTenant? tenant, EricksonLopez.MultiTenancy.TenantResolutionSource source = EricksonLopez.MultiTenancy.TenantResolutionSource.None) -> void
+static EricksonLopez.MultiTenancy.AmbientTenantContextHolder.Current.get -> EricksonLopez.MultiTenancy.ITenantContext?
+static EricksonLopez.MultiTenancy.AmbientTenantContextHolder.SetCurrentScoped(EricksonLopez.MultiTenancy.ITenantContext? context) -> System.IDisposable!
+static EricksonLopez.MultiTenancy.MultiTenancyHealthCheckExtensions.AddMultiTenancyHealthCheck(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<EricksonLopez.MultiTenancy.HealthChecks.MultiTenancyHealthCheckOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static EricksonLopez.MultiTenancy.ServiceCollectionExtensions.AddHttpRemoteTenantStore<TTenant>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<EricksonLopez.MultiTenancy.Stores.HttpRemoteTenantStoreOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static EricksonLopez.MultiTenancy.ServiceCollectionExtensions.AddInMemoryTenantStore<TTenant>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<EricksonLopez.MultiTenancy.InMemoryTenantStore<TTenant!>!>? configureStore = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static EricksonLopez.MultiTenancy.ServiceCollectionExtensions.AddMultiTenancy(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static EricksonLopez.MultiTenancy.ServiceCollectionExtensions.AddMultiTenancy<TTenant>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static EricksonLopez.MultiTenancy.Stores.CachedTenantStoreExtensions.AddCachedTenantStore<TTenant>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<EricksonLopez.MultiTenancy.Stores.CachedTenantStoreOptions!>? configureOptions = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static EricksonLopez.MultiTenancy.TenantContext.Create(EricksonLopez.MultiTenancy.ITenantInfo? tenant, EricksonLopez.MultiTenancy.TenantResolutionSource source = EricksonLopez.MultiTenancy.TenantResolutionSource.None) -> EricksonLopez.MultiTenancy.ITenantContext!
+static readonly EricksonLopez.MultiTenancy.PlatformAdminContext.None -> EricksonLopez.MultiTenancy.PlatformAdminContext!
+static readonly EricksonLopez.MultiTenancy.TenantContext.Empty -> EricksonLopez.MultiTenancy.ITenantContext!
+static readonly EricksonLopez.MultiTenancy.TenantContext<TTenant>.Empty -> EricksonLopez.MultiTenancy.TenantContext<TTenant!>!
