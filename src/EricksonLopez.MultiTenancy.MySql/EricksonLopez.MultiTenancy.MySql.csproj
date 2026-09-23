@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Description>MySQL session variable and multi-tenant isolation integration for EricksonLopez.MultiTenancy. Sets connection/transaction-level session variables for tenant isolation with MySqlConnector and Dapper.</Description>
-    <PackageTags>$(CommonPackageTags);mysql;session-variables;database-isolation;dapper;sql;native-aot</PackageTags>
+    <PackageTags>$(CommonPackageTags);mysql;mysqlconnector;session-variables;database-isolation;dapper;sql;native-aot</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +13,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EricksonLopez.MultiTenancy.Abstractions\EricksonLopez.MultiTenancy.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EricksonLopez.MultiTenancy.MySql.Tests" />
   </ItemGroup>
 
 </Project>

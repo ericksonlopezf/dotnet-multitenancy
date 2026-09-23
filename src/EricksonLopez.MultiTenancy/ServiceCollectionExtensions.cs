@@ -71,6 +71,17 @@ public static class ServiceCollectionExtensions
             return TenantContext<TTenant>.Empty;
         });
 
+        services.TryAddScoped<TTenant>(sp =>
+        {
+            var context = sp.GetRequiredService<ITenantContext<TTenant>>();
+            if (context.Tenant is TTenant typedTenant)
+            {
+                return typedTenant;
+            }
+
+            throw new TenantNotFoundException("Active tenant context is not resolved for this request scope.");
+        });
+
         return services;
     }
 

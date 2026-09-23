@@ -34,7 +34,7 @@ builder.Services.AddAspNetCoreMultiTenancy();
 // Additional Resolution Strategies (Precedence order: Claims > Host > Route > Header)
 builder.Services.AddHostNameTenantStrategy();
 builder.Services.AddRouteTenantStrategy("tenantId");
-builder.Services.AddInternalHeaderTenantResolution();
+builder.Services.AddInternalHeaderTenantResolution("gateway-secret-token");
 builder.Services.AddBasePathStrategy(segmentIndex: 0);
 
 // Seed in-memory tenant store
@@ -104,10 +104,19 @@ app.MapGet("/", () => Results.Ok(new
 QuickStartDemo.ConfigureApp(app);
 FullConfigurationDemo.MapConfigurationEndpoints(app);
 RealWorldUseCasesDemo.MapEndpoints(app);
+EricksonLopez.MultiTenancy.Showcase.Levels.Level11_ComprehensiveApiCoverage.ComprehensiveApiCoverageDemo.MapEndpoints(app);
 app.MapShowcaseRoutes();
 
 Console.WriteLine("==================================================================");
 Console.WriteLine(" EricksonLopez.MultiTenancy Showcase & Official Reference App    ");
 Console.WriteLine("==================================================================");
 
-app.Run();
+if (args.Length > 0 && args[0] == "--server")
+{
+    app.Run();
+}
+else
+{
+    await EricksonLopez.MultiTenancy.Showcase.Levels.Level11_ComprehensiveApiCoverage.ComprehensiveApiCoverageDemo.RunAsync(app.Services);
+    Console.WriteLine("All multi-tenancy showcase levels completed successfully (exit 0).");
+}

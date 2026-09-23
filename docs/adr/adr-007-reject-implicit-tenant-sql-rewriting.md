@@ -3,6 +3,9 @@
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 Automatic insertion of `WHERE tenant_id = @CurrentTenant` into SQL queries by `EricksonLopez.SqlBuilder` or `EricksonLopez.DapperExtensions` was evaluated. The idea: whenever a multi-tenant table is queried, the builder automatically appends the tenant filter.
 

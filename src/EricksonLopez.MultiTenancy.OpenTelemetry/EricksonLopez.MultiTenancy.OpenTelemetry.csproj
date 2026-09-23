@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Description>OpenTelemetry distributed tracing, metrics, and W3C baggage propagation for EricksonLopez.MultiTenancy.</Description>
-    <PackageTags>$(CommonPackageTags);opentelemetry;tracing;metrics;observability;telemetry;baggage;native-aot</PackageTags>
+    <PackageTags>$(CommonPackageTags);opentelemetry;tracing;metrics;observability;telemetry;w3c-baggage;distributed-tracing;native-aot</PackageTags>
     <IsAotCompatible>true</IsAotCompatible>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
   </PropertyGroup>

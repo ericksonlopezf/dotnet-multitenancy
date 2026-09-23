@@ -26,6 +26,7 @@
       "ConfigureAwait",
       "Dispose",
       "SuppressFinalize"
-    ]
+    ],
+    "concurrency": 2
   }
 }

@@ -43,15 +43,29 @@ public interface ITenantContext
     /// <summary>
     /// Gets the required resolved tenant metadata.
     /// </summary>
-    /// <exception cref="TenantNotFoundException">No tenant has been resolved in the current ambient execution context</exception>
+    /// <exception cref="TenantNotFoundException">
+    /// No tenant has been resolved in the current ambient execution context (<see cref="Tenant"/> is <see langword="null"/>),
+    /// or the resolved tenant has an empty identifier (<see cref="TenantId.IsEmpty"/> is <see langword="true"/>).
+    /// </exception>
+    /// <exception cref="TenantInactiveException">The resolved tenant exists but is inactive or suspended</exception>
     [SuppressMessage("Major Code Smell", "S2372:Exceptions should not be thrown from property getters", Justification = "RequiredTenant explicitly guarantees fail-fast invariant semantics when no tenant is resolved.")]
     ITenantInfo RequiredTenant
     {
         get
         {
-            if (!IsResolved || Tenant is null)
+            if (Tenant is null)
             {
                 throw new TenantNotFoundException("No tenant has been resolved in the current ambient execution context.");
+            }
+
+            if (!Tenant.IsActive)
+            {
+                throw new TenantInactiveException(Tenant.Id);
+            }
+
+            if (!IsResolved)
+            {
+                throw new TenantNotFoundException("The resolved tenant is invalid or has an empty identifier.");
             }
 
             return Tenant;
@@ -70,19 +84,4 @@ public interface ITenantContext<out TTenant> : ITenantContext
     /// Gets the strongly-typed resolved tenant metadata.
     /// </summary>
     new TTenant? Tenant { get; }
-}
-
-/// <summary>
-/// Provides a mechanism to set the ambient tenant context exactly once per scope.
-/// </summary>
-public interface ITenantContextAccessor
-{
-    /// <summary>
-    /// Gets or sets the current ambient tenant context.
-    /// </summary>
-    /// <remarks>
-    /// The setter may only be called once per scope lifetime.
-    /// Subsequent set attempts will throw a <see cref="System.InvalidOperationException"/>.
-    /// </remarks>
-    ITenantContext? TenantContext { get; set; }
 }

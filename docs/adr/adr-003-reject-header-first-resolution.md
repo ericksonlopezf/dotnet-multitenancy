@@ -3,6 +3,9 @@
 ## Status
 Accepted
 
+## Date
+2026-09-04
+
 ## Context
 The original `AddAspNetCoreMultiTenancy()` registers resolution strategies in this order:
 1. `HeaderTenantResolutionStrategy` (X-Tenant-ID header)

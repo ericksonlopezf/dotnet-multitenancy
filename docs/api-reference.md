@@ -1,134 +1,177 @@
-# Public API Reference — EricksonLopez.MultiTenancy
+# Official Public API Reference — EricksonLopez.MultiTenancy
 
-Detailed technical documentation of all public types, interfaces, structs, classes, extension methods, and error catalogs across the `EricksonLopez.MultiTenancy` ecosystem.
-
-> All types, interfaces, and method signatures in this document are verified against the source code in `src/`. The **code is the source of truth**.
+> **Version**: 2.0.0  
+> **Target Frameworks**: .NET 8.0, .NET 9.0  
+> **Documentation Style**: Microsoft Learn Format  
+> **Source of Truth**: Compiled and tested assemblies from `src/`  
+> **Compatibility**: Native AOT, Trimming-Friendly, Zero Dynamic Code
 
 ---
 
 ## Table of Contents
 
 1. [EricksonLopez.MultiTenancy.Abstractions](#1-ericksonlopezmultitenancyabstractions)
+   - [TenantId (Readonly Record Struct)](#tenantid-readonly-record-struct)
+   - [ITenantInfo & TenantInfo](#itenantinfo--tenantinfo)
+   - [ITenantContext & ITenantContext\<TTenant\>](#itenantcontext--itenantcontextttenant)
+   - [ITenantContextAccessor](#itenantcontextaccessor)
+   - [ITenantStore & ITenantLookupStore](#itenantstore--itenantlookupstore)
+   - [ITenantScopeFactory & ITenantScope](#itenantscopefactory--itenantscope)
+   - [TenantErrors](#tenanterrors)
+   - [Organizational Hierarchy (ICompanyContext, IBranchContext, IOrganizationContext)](#organizational-hierarchy)
+   - [IPlatformAdminContext](#iplatformadmincontext)
 2. [EricksonLopez.MultiTenancy (Core Engine)](#2-ericksonlopezmultitenancy-core-engine)
-3. [EricksonLopez.MultiTenancy.Analyzers](#3-ericksonlopezmultitenancyanalyzers)
-4. [EricksonLopez.MultiTenancy.AspNetCore](#4-ericksonlopezmultitenancyaspnetcore)
-5. [EricksonLopez.MultiTenancy.Authentication](#5-ericksonlopezmultitenancyauthentication)
-6. [EricksonLopez.MultiTenancy.Configuration](#6-ericksonlopezmultitenancyconfiguration)
-7. [EricksonLopez.MultiTenancy.Dapper](#7-ericksonlopezmultitenancydapper)
-8. [EricksonLopez.MultiTenancy.OpenTelemetry](#8-ericksonlopezmultitenancyopentelemetry)
-9. [Database Dialect Packages](#9-database-dialect-packages)
-10. [EricksonLopez.MultiTenancy.Testing](#10-ericksonlopezmultitenancytesting)
+   - [TenantContext (Class)](#tenantcontext-class)
+   - [ScopedTenantContextAccessor](#scopedtenantcontextaccessor)
+   - [AmbientTenantContextHolder](#ambienttenantcontextholder)
+   - [DefaultTenantScopeFactory](#defaulttenantscopefactory)
+   - [InMemoryTenantStore](#inmemorytenantstore)
+   - [CachedTenantStore & CachedTenantStoreExtensions](#cachedtenantstore)
+   - [HttpRemoteTenantStore](#httpremotetenantstore)
+   - [MultiTenancyHealthCheck](#multitenancyhealthcheck)
+   - [ServiceCollectionExtensions](#servicecollectionextensions)
+3. [EricksonLopez.MultiTenancy.AspNetCore](#3-ericksonlopezmultitenancyaspnetcore)
+   - [TenantResolutionMiddleware & Options](#tenantresolutionmiddleware)
+   - [HTTP Resolution Strategies](#http-resolution-strategies)
+   - [RequireTenantFilter & Endpoint Extensions](#requiretenantfilter--endpoint-extensions)
+   - [TenantOptionsCache & AddPerTenantOptions](#tenantoptionscache--addpertenantoptions)
+   - [TenantRouteConstraint](#tenantrouteconstraint)
+4. [EricksonLopez.MultiTenancy.Authentication](#4-ericksonlopezmultitenancyauthentication)
+   - [TenantAuthenticationExtensions & TenantCookieAuthenticationEvents](#tenantauthenticationextensions)
+5. [EricksonLopez.MultiTenancy.Configuration](#5-ericksonlopezmultitenancyconfiguration)
+   - [ConfigurationTenantStore](#configurationtenantstore)
+6. [EricksonLopez.MultiTenancy.Dapper](#6-ericksonlopezmultitenancydapper)
+   - [TenantDapperExtensions & OrganizationDapperExtensions](#tenantdapperextensions)
+7. [EricksonLopez.MultiTenancy.OpenTelemetry](#7-ericksonlopezmultitenancyopentelemetry)
+   - [TenantActivitySource, TenantMetrics, ITenantTraceEnricher](#tenantactivitysource--tenantmetrics)
+8. [Database Dialect Packages](#8-database-dialect-packages)
+   - [PostgreSQL (PostgreSqlRlsExtensions, PostgreSqlTenantStore)](#postgresql-rls)
+   - [SQL Server (SqlServerSessionContextExtensions)](#sql-server-session_context)
+   - [MySQL & MariaDB (MySqlTenantExtensions, MariaDbTenantExtensions)](#mysql--mariadb)
+   - [Oracle (OracleVpdExtensions)](#oracle-vpd)
+   - [SQLite (SqliteTenantConnectionFactory, SqliteTenantExtensions)](#sqlite-database-per-tenant)
+9. [EricksonLopez.MultiTenancy.Testing](#9-ericksonlopezmultitenancytesting)
+   - [TenantContextBuilder & TestTenantContext](#tenantcontextbuilder--testtenantcontext)
+   - [FakeTenantStore & FakeTenantResolutionStrategy](#faketenantstore)
+   - [FakeDbConnection & ADO.NET Test Doubles](#fakedbconnection--adonet-test-doubles)
 
 ---
 
 ## 1. EricksonLopez.MultiTenancy.Abstractions
 
-Foundational contracts and value objects with zero external dependencies (pure BCL and `EricksonLopez.Result`). All types live in namespace `EricksonLopez.MultiTenancy`.
+Namespace: `EricksonLopez.MultiTenancy`  
+Assembly: `EricksonLopez.MultiTenancy.Abstractions.dll`
 
-### `TenantId` (Struct)
-Strongly-typed, immutable, readonly record struct wrapping a `Guid`.
+### `TenantId` (Readonly Record Struct)
+
+Immutable, strongly-typed identifier backed internally by a 128-bit `System.Guid`.
 
 ```csharp
-[JsonConverter(typeof(TenantIdJsonConverter))]
-public readonly record struct TenantId : IEquatable<TenantId>, IComparable<TenantId>, IComparable
+[System.Text.Json.Serialization.JsonConverter(typeof(Serialization.TenantIdJsonConverter))]
+public readonly record struct TenantId : IEquatable<TenantId>, IComparable<TenantId>, IComparable, ISpanParsable<TenantId>
 ```
 
-- **Static Sentinels:**
-  - `TenantId.Empty`: Sentinel representing an uninitialized/empty identifier (`Guid.Empty`).
-- **Static Factory Methods:**
-  - `TenantId.NewId()`: Generates a new random `TenantId`.
-  - `TenantId.Create(Guid value)`: Returns `Result<TenantId>`. Failure if `value == Guid.Empty`.
-  - `TenantId.Create(string value)`: Returns `Result<TenantId>`. Failure on invalid GUID string or empty.
-  - `TenantId.From(Guid value)`: Returns `Result<TenantId>`. Allows `Guid.Empty` (returns `TenantId.Empty`).
-  - `TenantId.From(string value)`: Returns `Result<TenantId>`. Parses the GUID string; allows empty GUID.
-  - `TenantId.TryCreate(string? value, out TenantId result)`: Safe parsing without exceptions. Returns `true` if valid and non-empty.
-  - `TenantId.TryCreate(Guid value, out TenantId result)`: Safe creation without exceptions. Returns `true` if non-empty.
-- **Instance Properties:**
-  - `Value` (`Guid`): Underlying GUID value.
-  - `IsEmpty` (`bool`): Returns `true` if `Value == Guid.Empty`.
-- **Conversions:**
-  - Implicit conversion to `Guid` (`Guid guid = tenantId;`).
-  - Explicit conversion to `string` (`string s = (string)tenantId;`).
-- **JSON Serialization:**
-  - Handled by `TenantIdJsonConverter` (namespace `EricksonLopez.MultiTenancy.Serialization`) — reads/writes as a UUID string.
+#### Properties
+- `Guid Value { get; }`: Gets the underlying `Guid` value.
+- `bool IsEmpty { get; }`: Returns `true` if `Value == Guid.Empty`.
+- `static TenantId Empty { get; }`: Static sentinel equivalent to `new TenantId(Guid.Empty)`.
+
+#### Factory & Parsing Methods
+- `static TenantId NewId()`: Generates a new `TenantId` backed by `Guid.NewGuid()`.
+- `static TenantId Create(Guid value)`: Creates a `TenantId`. Throws `ArgumentException` if `value == Guid.Empty`.
+- `static TenantId Create(string value)`: Parses a GUID string. Throws `ArgumentException` if null, whitespace, or invalid.
+- `static TenantId Create(ReadOnlySpan<char> value)`: Zero-allocation span parser.
+- `static Result<TenantId> From(Guid value)`: Creates a `Result<TenantId>`. Returns `Failure` with `TenantErrors.InvalidId` if empty.
+- `static Result<TenantId> From(string? value)`: Safe string factory returning a `Result<TenantId>`.
+- `static Result<TenantId> From(ReadOnlySpan<char> value)`: Zero-allocation span factory.
+- `static bool TryCreate(string? value, out TenantId tenantId)`: Safe non-throwing factory. Returns `false` if invalid.
+- `static bool TryCreate(ReadOnlySpan<char> value, out TenantId tenantId)`: Zero-allocation span try-parse overload.
+- `static bool TryCreate(Guid value, out TenantId tenantId)`: Returns `false` if `value == Guid.Empty`.
+- `static TenantId Parse(string s, IFormatProvider? provider = null)`: `IParsable<TenantId>` implementation.
+- `static bool TryParse(string? s, IFormatProvider? provider, out TenantId result)`: `IParsable<TenantId>` implementation.
+- `static TenantId Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)`: `ISpanParsable<TenantId>` implementation.
+- `static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out TenantId result)`: `ISpanParsable<TenantId>` implementation.
+
+#### Operators
+- `implicit operator Guid(TenantId tenantId)`: Implicit conversion to `Guid`.
+- `explicit operator TenantId(Guid value)`: Explicit conversion from `Guid`.
+- `<`, `<=`, `>`, `>=`: Comparison operators delegated to `Guid.CompareTo`.
+
+#### When to Use
+Use `TenantId` as the mandatory type for all foreign keys, primary keys, and parameter representations of tenant identity across application layers.
+
+#### When NOT to Use
+Do not use untyped strings or raw GUIDs (`string tenantId`, `Guid tenantId`) in public APIs, avoiding parameter collisions and assignment errors.
 
 ---
 
-### `ITenantInfo` (Interface)
-Contract representing tenant metadata.
+### `ITenantInfo` & `TenantInfo`
 
+#### `ITenantInfo` (Interface)
+Fundamental metadata contract for an active tenant.
 ```csharp
 public interface ITenantInfo
 {
     TenantId Id { get; }
     string Name { get; }
-    bool IsActive { get; }
     string? ConnectionString { get; }
+    bool IsActive { get; }
+    IReadOnlyDictionary<string, string> Properties { get; }
 }
 ```
 
-#### `TenantInfo` (Default Implementation)
-Immutable `record class` implementing `ITenantInfo`.
-
+#### `TenantInfo` (Record Class)
+Standard immutable implementation of `ITenantInfo`.
 ```csharp
-public sealed record TenantInfo(
-    TenantId Id,
-    string Name,
-    bool IsActive = true,
-    string? ConnectionString = null) : ITenantInfo;
+public record class TenantInfo : ITenantInfo
+{
+    public TenantId Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string? ConnectionString { get; init; }
+    public bool IsActive { get; init; } = true;
+    public IReadOnlyDictionary<string, string> Properties { get; init; } = new Dictionary<string, string>();
+
+    public TenantInfo();
+    public TenantInfo(TenantId id, string name, string? connectionString = null, bool isActive = true);
+}
 ```
 
 ---
 
-### `ITenantContext` & `ITenantContext<TTenant>` (Interfaces)
-Immutable container representing the tenant context of the current execution unit.
+### `ITenantContext` & `ITenantContext<TTenant>`
 
+#### `ITenantContext` (Interface)
+Immutable contract for ambient tenant context resolved for the active scope.
 ```csharp
 public interface ITenantContext
 {
-    // Resolved tenant metadata, or null if not yet resolved.
     ITenantInfo? Tenant { get; }
-
-    // True only when Tenant != null, Tenant.Id != TenantId.Empty, AND Tenant.IsActive == true.
     [MemberNotNullWhen(true, nameof(Tenant))]
     bool IsResolved { get; }
-
-    // Returns TenantResolutionSource.None when unresolved.
     TenantResolutionSource Source { get; }
-
-    // Default interface implementation — throws TenantNotFoundException if !IsResolved.
     ITenantInfo RequiredTenant { get; }
 }
+```
 
-// Strongly-typed variant.
-public interface ITenantContext<out TTenant> : ITenantContext where TTenant : class, ITenantInfo
+- **`RequiredTenant` Property**:
+  - **Return**: Returns the guaranteed active `ITenantInfo`.
+  - **Exceptions**:
+    - `TenantNotFoundException`: Thrown if `Tenant` is null or `TenantId.Empty`.
+    - `TenantInactiveException`: Thrown if tenant exists but `IsActive` is `false`.
+  - **Remarks**: Designed for protected endpoints where unresolved tenant state constitutes an invariant violation.
+
+#### `ITenantContext<TTenant>` (Interface)
+```csharp
+public interface ITenantContext<out TTenant> : ITenantContext
+    where TTenant : class, ITenantInfo
 {
     new TTenant? Tenant { get; }
 }
 ```
 
-> **Important:** `IsResolved` returns `false` for inactive tenants even when the tenant record exists in the store. This is a security invariant — inactive tenants must never have an active resolved context.
-
-#### `TenantContext` (Static Factory & Default Implementation)
-
-```csharp
-// Unresolved sentinel — returned when no tenant has been resolved.
-public static ITenantContext Empty { get; }
-
-// Create a resolved context from tenant metadata.
-public static ITenantContext Create(ITenantInfo tenant,
-    TenantResolutionSource source = TenantResolutionSource.None);
-
-// Create a strongly-typed resolved context.
-public static ITenantContext<TTenant> Create<TTenant>(TTenant tenant,
-    TenantResolutionSource source = TenantResolutionSource.None)
-    where TTenant : class, ITenantInfo;
-```
-
 ---
 
 ### `ITenantContextAccessor` (Interface)
-Defines the contract for reading and setting the tenant context for the active scope.
 
 ```csharp
 public interface ITenantContextAccessor
@@ -136,25 +179,46 @@ public interface ITenantContextAccessor
     ITenantContext? TenantContext { get; set; }
 }
 ```
-
-- **Invariants:**
-  - Registered as **Scoped** (one instance per DI scope / HTTP request).
-  - Write-once per scope. Re-assigning after the context has been set throws `InvalidOperationException`.
-  - Contains no static state — no `AsyncLocal<T>` fields (see [ADR-002](adr/adr-002-redesign-async-local-accessor.md)).
+- **Invariant**: Registered as `Scoped`. The setter must only be called **once** per scope lifecycle. Subsequent attempts throw `InvalidOperationException`.
 
 ---
 
-### `ITenantScope` & `ITenantScopeFactory` (Interfaces)
-Contracts for executing non-HTTP background jobs in an isolated DI scope.
+### `ITenantStore` & `ITenantLookupStore`
+
+```csharp
+public interface ITenantStore
+{
+    Task<Result<ITenantInfo>> GetTenantAsync(TenantId tenantId, CancellationToken cancellationToken = default);
+    IAsyncEnumerable<ITenantInfo> GetAllStreamAsync(CancellationToken cancellationToken = default);
+}
+
+public interface ITenantStore<TTenant> : ITenantStore where TTenant : class, ITenantInfo
+{
+    new Task<Result<TTenant>> GetTenantAsync(TenantId tenantId, CancellationToken cancellationToken = default);
+    new IAsyncEnumerable<TTenant> GetAllStreamAsync(CancellationToken cancellationToken = default);
+}
+
+public interface ITenantLookupStore : ITenantStore
+{
+    Task<Result<ITenantInfo>> GetTenantByIdentifierAsync(string identifier, CancellationToken cancellationToken = default);
+}
+
+public interface ITenantLookupStore<TTenant> : ITenantLookupStore, ITenantStore<TTenant> where TTenant : class, ITenantInfo
+{
+    new Task<Result<TTenant>> GetTenantByIdentifierAsync(string identifier, CancellationToken cancellationToken = default);
+}
+```
+
+---
+
+### `ITenantScopeFactory` & `ITenantScope`
+
+Execution scope factory for non-HTTP background workers and message queue consumers.
 
 ```csharp
 public interface ITenantScopeFactory
 {
-    // source defaults to TenantResolutionSource.ExplicitScope.
-    // Throws ArgumentNullException if tenant is null.
-    // Throws ArgumentException if tenant.Id == TenantId.Empty.
-    ITenantScope CreateScope(ITenantInfo tenant,
-        TenantResolutionSource source = TenantResolutionSource.ExplicitScope);
+    ITenantScope CreateScope(ITenantInfo tenant, TenantResolutionSource source = TenantResolutionSource.ExplicitScope);
 }
 
 public interface ITenantScope : IAsyncDisposable, IDisposable
@@ -166,571 +230,273 @@ public interface ITenantScope : IAsyncDisposable, IDisposable
 
 ---
 
-### `ITenantStore` & `ITenantLookupStore` (Interfaces)
-Contracts for tenant persistence and query resolution. All methods use the `Result<T>` monad to avoid exceptions in the happy path.
+### `TenantErrors`
 
-```csharp
-public interface ITenantStore
-{
-    Task<Result<ITenantInfo>> GetTenantAsync(TenantId tenantId,
-        CancellationToken cancellationToken = default);
-}
-
-// Strongly-typed variant.
-public interface ITenantStore<TTenant> : ITenantStore where TTenant : class, ITenantInfo
-{
-    new Task<Result<TTenant>> GetTenantAsync(TenantId tenantId,
-        CancellationToken cancellationToken = default);
-}
-
-public interface ITenantLookupStore : ITenantStore
-{
-    // Resolves by tenant Name or TenantId string.
-    Task<Result<ITenantInfo>> GetTenantByIdentifierAsync(string identifier,
-        CancellationToken cancellationToken = default);
-}
-
-// Strongly-typed variant.
-public interface ITenantLookupStore<TTenant> : ITenantStore<TTenant>, ITenantLookupStore
-    where TTenant : class, ITenantInfo
-{
-    new Task<Result<TTenant>> GetTenantByIdentifierAsync(string identifier,
-        CancellationToken cancellationToken = default);
-}
-```
-
-> **Note:** There is no `GetByNameAsync` or `ExistsAsync` method. Use `GetTenantByIdentifierAsync` for name-based or string-key lookups, and check `result.IsSuccess` in place of `ExistsAsync`.
+Standardized domain error catalog based on `EricksonLopez.Result.Error`.
+- `static Error NotFound(TenantId tenantId)`: Code `Tenant.NotFound`.
+- `static readonly Error Unresolved`: Code `Tenant.Unresolved`.
+- `static Error Inactive(TenantId tenantId)`: Code `Tenant.Inactive`.
+- `static Error InvalidId(string? value)`: Code `Tenant.InvalidId`.
+- `static Error StrategyFailed(string strategyName, string? reason = null)`: Code `Tenant.ResolutionFailed`.
 
 ---
 
-### `ITenantEntity` (Interface)
-Marker interface for domain entities that belong to a specific tenant.
+### Organizational Hierarchy
 
-```csharp
-public interface ITenantEntity
-{
-    TenantId TenantId { get; }
-}
-```
+Native support for multi-tiered corporate models:
+- `ICompanyContext`: Exposes `Guid? CompanyId` and `bool HasCompanyContext`.
+- `IBranchContext`: Exposes `Guid? BranchId`, `IReadOnlyList<Guid> AllowedBranchIds`, and `bool AllBranchesAllowed`.
+- `IOrganizationContext`: Combines `ITenantContext`, `ICompanyContext`, and `IBranchContext`.
 
 ---
 
-### `TenantResolutionSource` (Enum)
-Audit trail enumeration indicating how the active tenant was resolved.
+### `IPlatformAdminContext`
 
+Contract for privileged administrative and migration operations requiring explicit cross-tenant bypass (ADR-004).
 ```csharp
-public enum TenantResolutionSource
+public interface IPlatformAdminContext
 {
-    None = 0,            // No tenant resolved
-    JwtClaim = 1,        // Resolved from authenticated JWT claim (tenant_id, tid, tenant)
-    Route = 2,           // Resolved from URL route template
-    Host = 3,            // Resolved from hostname or subdomain
-    Header = 4,          // Resolved from X-Tenant-ID HTTP header (opt-in only)
-    ExplicitScope = 5,   // Established via ITenantScopeFactory
-    PlatformAdmin = 6,   // Elevated platform admin context for cross-tenant operations
-    BackgroundJob = 7,   // Resolved from background job execution context
-    MessageMetadata = 8  // Resolved from message broker metadata
+    bool IsPlatformAdmin { get; }
+    string? AuditReason { get; }
 }
 ```
-
-> **Important for switch statements:** Do not use integer literals — use the enum member names. The numeric assignments above are stable across versions.
-
----
-
-### `TenantErrors` (Domain Error Catalog)
-Standardized functional domain errors returning `EricksonLopez.Result.Error`. All methods return `Error`, never throw.
-
-```csharp
-public static class TenantErrors
-{
-    // Code: "Tenant.NotFound"
-    public static Error NotFound(TenantId tenantId);
-
-    // Code: "Tenant.Unresolved" — singleton, no parameters
-    public static readonly Error Unresolved;
-
-    // Code: "Tenant.Inactive"
-    public static Error Inactive(TenantId tenantId);
-
-    // Code: "Tenant.InvalidId" — for invalid GUID strings or empty values
-    public static Error InvalidId(string? value);
-
-    // Code: "Tenant.ResolutionFailed"
-    public static Error StrategyFailed(string strategyName, string? reason = null);
-}
-```
-
-> **There is no `TenantErrors.NotFound(string)` overload** — pass a `TenantId`. Use `TenantErrors.InvalidId(string)` for invalid identifier strings.
-> **There is no `TenantErrors.ResolutionConflict` method** — resolution conflicts throw `InvalidOperationException` from the middleware (not a Result error).
-
-#### Exceptions vs. Result errors
-
-| Scenario | Mechanism |
-|:---|:---|
-| Tenant not found in store | `Result<T>.Failure(TenantErrors.NotFound(id))` |
-| Tenant is inactive | `Result<T>.Failure(TenantErrors.Inactive(id))` |
-| Tenant context not resolved | `TenantNotFoundException` (thrown by `RequiredTenant`) |
-| Resolution conflict (different tenant IDs from two strategies) | `InvalidOperationException` (thrown by middleware) |
 
 ---
 
 ## 2. EricksonLopez.MultiTenancy (Core Engine)
 
-### `ScopedTenantContextAccessor` (Class)
-Write-once scoped accessor. Contains no static `AsyncLocal` state (see [ADR-002](adr/adr-002-redesign-async-local-accessor.md)).
+Namespace: `EricksonLopez.MultiTenancy`  
+Assembly: `EricksonLopez.MultiTenancy.dll`
+
+### `TenantContext` (Class)
 
 ```csharp
-public sealed class ScopedTenantContextAccessor : ITenantContextAccessor
+public class TenantContext : ITenantContext
+{
+    public static ITenantContext Empty { get; }
+    public ITenantInfo? Tenant { get; }
+    public bool IsResolved { get; }
+    public TenantResolutionSource Source { get; }
+    public ITenantInfo RequiredTenant { get; }
+
+    public TenantContext();
+    public TenantContext(ITenantInfo? tenant, TenantResolutionSource source = TenantResolutionSource.None);
+}
 ```
 
-- **Lifetime:** Scoped — one instance per DI scope / HTTP request.
-- The setter throws `InvalidOperationException` if context has already been set in the current scope.
+### `ScopedTenantContextAccessor`
 
----
+Scoped write-once accessor upholding isolation invariants and eliminating static global state.
 
-### `DefaultTenantScopeFactory` (Class)
-Default implementation of `ITenantScopeFactory` that creates an isolated `IServiceScope`, sets the resolved `ITenantContext`, and populates the `ScopedTenantContextAccessor`.
+### `AmbientTenantContextHolder`
 
-- **Lifetime:** Singleton (stateless factory).
-- `CreateScope` throws `ArgumentException` if `tenant.Id == TenantId.Empty`.
+Low-level container backed by `AsyncLocal<ITenantContext?>` for asynchronous contexts outside HTTP dependency injection lifecycles.
 
----
+### `DefaultTenantScopeFactory`
 
-### `InMemoryTenantStore<TTenant>` (Class)
-Thread-safe `ConcurrentDictionary`-backed in-memory store. Suitable for development, testing, and single-instance deployments.
+Singleton implementation of `ITenantScopeFactory` creating `IServiceScope` instances with a `ScopedTenantContextAccessor` bound to the requested tenant.
+
+### `InMemoryTenantStore`
 
 ```csharp
-public class InMemoryTenantStore<TTenant> : ITenantStore<TTenant>, ITenantLookupStore<TTenant>
-    where TTenant : class, ITenantInfo
+public class InMemoryTenantStore<TTenant> : ITenantStore<TTenant>, ITenantLookupStore<TTenant> where TTenant : class, ITenantInfo
 {
-    // Constructors
     public InMemoryTenantStore();
     public InMemoryTenantStore(IEnumerable<TTenant> tenants);
-
-    // Mutation — thread-safe
     public void AddOrUpdate(TTenant tenant);
 }
-
-// Convenience non-generic version pre-typed to TenantInfo.
-public sealed class InMemoryTenantStore : InMemoryTenantStore<TenantInfo>
 ```
 
-> **Note:** There is no `TryRemove(TenantId)` method. To deactivate a tenant, call `AddOrUpdate` with a new instance where `IsActive = false`.
+### `CachedTenantStore`
 
----
+Namespace: `EricksonLopez.MultiTenancy.Stores`  
+Decorator for `ITenantStore<TTenant>` and `ITenantLookupStore<TTenant>` backed by `Microsoft.Extensions.Caching.Memory.IMemoryCache`.
+- Options: `CachedTenantStoreOptions` (`AbsoluteExpirationRelativeToNow`, `SlidingExpiration`).
+- Extension method: `services.AddCachedTenantStore<TTenant>(Action<CachedTenantStoreOptions>? configure = null)`.
 
-### `CachedTenantStore<TTenant>` (Class)
-High-performance `IMemoryCache`-backed decorator wrapping any `ITenantStore<TTenant>`.
+### `HttpRemoteTenantStore`
 
-- **Options:** `CachedTenantStoreOptions`
+Namespace: `EricksonLopez.MultiTenancy.Stores`  
+Resilient HTTP client for querying upstream tenant directory services.
+- Options: `HttpRemoteTenantStoreOptions` (`BaseAddress`, `EndpointTemplate`, `IdentifierEndpointTemplate`, `Timeout`).
+- Extension method: `services.AddHttpRemoteTenantStore<TTenant>(Action<HttpRemoteTenantStoreOptions>? configure = null)`.
 
-```csharp
-public sealed class CachedTenantStoreOptions
-{
-    // TTL relative to the moment the entry is set (not absolute clock time).
-    public TimeSpan AbsoluteExpirationRelativeToNow { get; set; } = TimeSpan.FromMinutes(5);
-    public TimeSpan? SlidingExpiration { get; set; }
-}
-```
+### `MultiTenancyHealthCheck`
 
-- **Registration:**
-```csharp
-services.AddCachedTenantStore<TenantInfo>(options =>
-{
-    options.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
-    options.SlidingExpiration = TimeSpan.FromMinutes(15);
-});
-```
-
-> **Cache eviction:** Entries expire **only via TTL**. There is no active invalidation triggered by tenant status changes. Plan your TTL accordingly.
-
----
-
-### `HttpRemoteTenantStore<TTenant>` (Class)
-Upstream remote HTTP tenant catalog client using `HttpClient` and `System.Text.Json`.
-
-- **Options:** `HttpRemoteTenantStoreOptions`
-
-```csharp
-public sealed class HttpRemoteTenantStoreOptions
-{
-    public Uri? BaseAddress { get; set; }
-    // Format placeholder {0} is replaced with TenantId (UUID string).
-    public string EndpointTemplate { get; set; } = "/api/tenants/{0}";
-    // Format placeholder {0} is replaced with URL-encoded identifier string.
-    public string IdentifierEndpointTemplate { get; set; } = "/api/tenants/by-identifier/{0}";
-    public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(5);
-}
-```
-
----
-
-### `MultiTenancyHealthCheck` (Class)
-ASP.NET Core Health Checks integration implementing `IHealthCheck`.
-
-```csharp
-// Registration
-services.AddMultiTenancyHealthCheck(options =>
-{
-    options.FailureStatus = HealthStatus.Degraded;
-    options.IncludeDiagnosticData = true;
-});
-```
-
----
+Namespace: `EricksonLopez.MultiTenancy.HealthChecks`  
+`IHealthCheck` implementation verifying multi-tenancy subsystem readiness.
+- Options: `MultiTenancyHealthCheckOptions` (`FailureStatus`, `IncludeDiagnosticData`, `StoreProbe`).
+- Extension method: `services.AddMultiTenancyHealthCheck(Action<MultiTenancyHealthCheckOptions>? configure = null)`.
 
 ### `ServiceCollectionExtensions`
-Core DI registration helpers:
 
-```csharp
-// Registers ScopedTenantContextAccessor and TenantContext<TenantInfo> (scoped).
-public static IServiceCollection AddMultiTenancy(this IServiceCollection services);
-
-// Registers ScopedTenantContextAccessor and TenantContext<TTenant> (scoped).
-public static IServiceCollection AddMultiTenancy<TTenant>(this IServiceCollection services)
-    where TTenant : class, ITenantInfo;
-```
+- `AddMultiTenancy(this IServiceCollection services)`: Registers base infrastructure (`ITenantContextAccessor` scoped, `ITenantContext` scoped, `ITenantScopeFactory` singleton).
+- `AddMultiTenancy<TTenant>(this IServiceCollection services)`: Registers generic overload with typed `TTenant` model.
+- `AddInMemoryTenantStore<TTenant>(this IServiceCollection services, Action<InMemoryTenantStore<TTenant>>? configure = null)`.
 
 ---
 
-## 3. EricksonLopez.MultiTenancy.Analyzers
+## 3. EricksonLopez.MultiTenancy.AspNetCore
 
-Roslyn static analysis analyzers active during compilation (targets `netstandard2.0`). See the dedicated rule documentation in [`docs/rules/`](rules/elmt001.md):
-
-| ID | Name | Severity | Detailed Rule Specification | Description |
-|:---|:---|:---:|:---:|:---|
-| **`ELMT001`** | `TenantContextStaticFieldAnalyzer` | Warning | **[ELMT001 Specification](rules/elmt001.md)** | `ITenantContext` or `ITenantContextAccessor` assigned to a static field |
-| **`ELMT002`** | `TenantContextInSingletonAnalyzer` | Warning | **[ELMT002 Specification](rules/elmt002.md)** | `ITenantContext` injected into a Singleton or cache type |
-| **`ELMT003`** | `DapperWithoutTenantAnalyzer` | Warning | **[ELMT003 Specification](rules/elmt003.md)** | Dapper SQL queries executed in tenant-aware context without tenant parameters |
-
----
-
-## 4. EricksonLopez.MultiTenancy.AspNetCore
+Namespace: `EricksonLopez.MultiTenancy.AspNetCore`  
+Assembly: `EricksonLopez.MultiTenancy.AspNetCore.dll`
 
 ### `TenantResolutionMiddleware`
-Request pipeline middleware that evaluates **all** registered strategies (fail-closed conflict detection per [ADR-008](adr/adr-008-adopt-fail-closed-tenant-resolution-conflict-detection.md)), validates tenant active status, and populates `ITenantContextAccessor`.
 
-If two strategies resolve **different** `TenantId` values for the same request, the middleware logs a warning and throws `InvalidOperationException`.
-
-```csharp
-// Registration
-app.UseMultiTenancy(); // adds TenantResolutionMiddleware to the pipeline
-```
-
----
+Cascading tenant resolution middleware executed across configured strategies.
+- **Fail-Closed Conflict Detection (ADR-008)**: Throws `TenantResolutionConflictException` if multiple strategies resolve conflicting non-null `TenantId` values.
+- **Pipeline Registration**: `app.UseMultiTenancy()`.
 
 ### HTTP Resolution Strategies
 
-| Strategy | Precedence | Registration |
-|:---|:---|:---|
-| `ClaimTenantResolutionStrategy` | Highest (1) | `AddAspNetCoreMultiTenancy()` (default) |
-| `HostNameTenantResolutionStrategy` | 2 | `AddHostNameTenantStrategy(...)` |
-| `RouteTenantResolutionStrategy` | 3 | `AddRouteTenantStrategy(...)` |
-| `BasePathTenantResolutionStrategy` | 4 | `AddBasePathStrategy(...)` |
-| `HeaderTenantResolutionStrategy` | Opt-in only | `AddInternalHeaderTenantResolution()` |
-| `DelegateTenantResolutionStrategy` | Custom | `AddDelegateTenantStrategy(Func<...>)` |
-| `StaticTenantResolutionStrategy` | Test only | `AddStaticTenantStrategy(tenantId)` |
+Located under `EricksonLopez.MultiTenancy.AspNetCore.Strategies`:
+- `ClaimTenantResolutionStrategy`: Resolves tenant from JWT claims (`tenant_id`, `tid`, `tenant`). Registered by default in `AddAspNetCoreMultiTenancy()`.
+- `HostNameTenantResolutionStrategy`: Resolves tenant from Host header / subdomain. Registered with `AddHostNameTenantStrategy()`.
+- `RouteTenantResolutionStrategy`: Resolves tenant from route values. Registered with `AddRouteTenantStrategy(routeParamName)`.
+- `BasePathTenantResolutionStrategy`: Resolves tenant from URL leading path segment. Registered with `AddBasePathStrategy(segmentIndex)`.
+- `InternalGatewayHeaderTenantResolutionStrategy`: Resolves tenant from internal gateway headers validated by shared secret token. Registered with `AddInternalHeaderTenantResolution(expectedSecret)`.
+- `StaticTenantResolutionStrategy`: Returns a fixed tenant identifier for fallback or testing. Registered with `AddStaticTenantStrategy(tenantId)`.
+- `DelegateTenantResolutionStrategy`: Custom resolver delegate `Func<CancellationToken, ValueTask<Result<TenantId>>>`. Registered with `AddDelegateTenantStrategy(resolver)`.
 
-Claims resolved from JWT: `tenant_id`, `tid`, `tenant` claim names (in priority order).
+### `RequireTenantFilter` & Endpoint Extensions
 
-> **Security note:** `HeaderTenantResolutionStrategy` is **not registered by default** to prevent header-based spoofing attacks. See [ADR-003](adr/adr-003-reject-header-first-resolution.md).
+- `app.MapGet(...).RequireTenant()` / `group.RequireTenant()`: Applies `RequireTenantFilter`, returning HTTP 400 ProblemDetails if `!IsResolved`.
+- `app.MapGet(...).AllowAnonymousTenant()` / `group.AllowAnonymousTenant()`: Attaches metadata allowing anonymous access to the endpoint.
 
-```csharp
-// Default registration (Claim + Host + Route)
-builder.Services.AddAspNetCoreMultiTenancy();
+### `TenantOptionsCache` & `AddPerTenantOptions`
 
-// Add opt-in header strategy for internal services only
-builder.Services.AddInternalHeaderTenantResolution();
+Namespace: `EricksonLopez.MultiTenancy.AspNetCore.Options`  
+Provides isolated memory partitioning for `IOptionsMonitor<T>` and `IOptionsSnapshot<T>` per tenant.
+- Method: `services.AddPerTenantOptions<TOptions, TTenant>(Action<TOptions, TTenant>? configure = null)`.
 
-// Custom delegate strategy
-builder.Services.AddDelegateTenantStrategy(async (httpContext) =>
-{
-    var value = httpContext.Request.Query["tenant"];
-    return TenantId.TryCreate(value, out var id) ? id : TenantId.Empty;
-});
-```
+### `TenantRouteConstraint`
+
+Namespace: `EricksonLopez.MultiTenancy.AspNetCore.Routing`  
+Route constraint `IRouteConstraint` validating identifier syntax in URL paths. Registered via `services.AddTenantRouteConstraint()`.
 
 ---
 
-### `RequireTenantFilter` & `.RequireTenant()`
-Minimal API and MVC endpoint filter. Returns HTTP 401 Unauthorized if `ITenantContext.IsResolved` is `false`.
+## 4. EricksonLopez.MultiTenancy.Authentication
 
-```csharp
-// On individual route
-app.MapGet("/api/data", () => Results.Ok()).RequireTenant();
+Namespace: `EricksonLopez.MultiTenancy.Authentication`  
+Assembly: `EricksonLopez.MultiTenancy.Authentication.dll`
 
-// On a route group
-var group = app.MapGroup("/api").RequireTenant();
-```
+- `AddPerTenantAuthentication<TTenant>()`: Configures dynamic scheme provider for multi-tenant authentication.
+- `TenantCookieAuthenticationEvents<TTenant>`: Cookie event handler validating in `ValidatePrincipal` that the cookie tenant matches the resolved request tenant, preventing cross-tenant session hijacking.
 
 ---
 
-### `TenantOptionsCache<TOptions, TTenant>`
-Thread-safe per-tenant `IOptionsSnapshot<TOptions>` cache.
+## 5. EricksonLopez.MultiTenancy.Configuration
 
-```csharp
-// Registration
-builder.Services.AddPerTenantOptions<MyOptions, TenantInfo>((options, tenant) =>
-{
-    options.ApiEndpoint = tenant.ConnectionString;
-});
-```
+Namespace: `EricksonLopez.MultiTenancy.Configuration`  
+Assembly: `EricksonLopez.MultiTenancy.Configuration.dll`
+
+- `ConfigurationTenantStore<TTenant>`: `ITenantLookupStore<TTenant>` implementation backed by `IConfiguration` sections.
+- `AddConfigurationTenantStore<TTenant>(this IServiceCollection services, Action<MultiTenancyConfigurationOptions<TTenant>>? configure = null)`.
 
 ---
 
-## 5. EricksonLopez.MultiTenancy.Authentication
+## 6. EricksonLopez.MultiTenancy.Dapper
 
-### `TenantAuthenticationExtensions`
-Provides dynamic per-tenant authentication scheme selection and handler routing.
-
-```csharp
-builder.Services.AddPerTenantAuthentication<TenantInfo>(options =>
-{
-    options.DefaultSchemeSelector = tenant => tenant.Id == SpecialTenant ? "CustomScheme" : "Bearer";
-});
-```
-
-Also provides `TenantCookieAuthenticationEvents<TTenant>` for per-tenant cookie path and domain customization.
-
----
-
-## 6. EricksonLopez.MultiTenancy.Configuration
-
-### `ConfigurationTenantStore<TTenant>`
-Binds tenant lists directly from `IConfiguration` sections (e.g. `appsettings.json`) with live reload support via `IOptionsMonitor`.
-
-```csharp
-builder.Services.AddConfigurationTenantStore<TenantInfo>(
-    builder.Configuration.GetSection("Tenants"));
-```
-
-`appsettings.json` example:
-```json
-{
-  "Tenants": [
-    { "Id": "...", "Name": "Acme", "IsActive": true, "ConnectionString": "..." }
-  ]
-}
-```
-
----
-
-## 7. EricksonLopez.MultiTenancy.Dapper
+Namespace: `EricksonLopez.MultiTenancy.Dapper`  
+Assembly: `EricksonLopez.MultiTenancy.Dapper.dll`
 
 ### `TenantDapperExtensions`
-Parameter enrichment helpers for Dapper queries. Both methods live in namespace `EricksonLopez.MultiTenancy.Dapper`.
+- `WithTenant(this DynamicParameters parameters, ITenantContext tenantContext, string parameterName = "TenantId")`: Adds `@TenantId` parameter from resolved tenant context.
+- `WithTenant(this DynamicParameters parameters, TenantId tenantId, string parameterName = "TenantId")`: Struct overload.
+- `CreateTenantParameters(this ITenantContext tenantContext, string parameterName = "TenantId")`: Creates a new `DynamicParameters` with `@TenantId`.
+- `CreateTenantParameters(TenantId tenantId, string parameterName = "TenantId")`: Direct struct overload.
 
-```csharp
-// Appends the tenant identifier to an existing DynamicParameters instance.
-// parameterName defaults to "TenantId".
-public static DynamicParameters WithTenant(
-    this DynamicParameters parameters,
-    ITenantContext tenantContext,
-    string parameterName = "TenantId");
-
-// Creates a new DynamicParameters instance pre-populated with the tenant identifier.
-// parameterName defaults to "TenantId".
-public static DynamicParameters CreateTenantParameters(
-    this ITenantContext tenantContext,
-    string parameterName = "TenantId");
-```
-
-**Usage:**
-
-```csharp
-// Option A — create a new DynamicParameters with only the tenant ID
-var tenantParams = tenantContext.CreateTenantParameters();
-var invoices = await connection.QueryAsync<Invoice>(
-    "SELECT * FROM invoices WHERE tenant_id = @TenantId",
-    tenantParams);
-
-// Option B — add tenant ID to an existing parameters object
-var parameters = new DynamicParameters();
-parameters.Add("Status", "Pending");
-parameters.WithTenant(tenantContext);
-
-var invoices = await connection.QueryAsync<Invoice>(
-    "SELECT * FROM invoices WHERE tenant_id = @TenantId AND status = @Status",
-    parameters);
-```
-
-> **Note:** `CreateTenantParameters` does **not** accept additional parameter objects. To add extra parameters, use `WithTenant` on a pre-populated `DynamicParameters` instance (Option B above).
+### `OrganizationDapperExtensions`
+- `WithOrganization(this DynamicParameters parameters, IOrganizationContext context)`: Adds `@TenantId`, `@CompanyId`, and `@BranchId`.
+- `CreateOrganizationParameters(this IOrganizationContext context)`: Returns a new `DynamicParameters` initialized with composite hierarchy.
 
 ---
 
-## 8. EricksonLopez.MultiTenancy.OpenTelemetry
+## 7. EricksonLopez.MultiTenancy.OpenTelemetry
+
+Namespace: `EricksonLopez.MultiTenancy.OpenTelemetry`  
+Assembly: `EricksonLopez.MultiTenancy.OpenTelemetry.dll`
 
 ### `TenantActivitySource`
-Provides the canonical `ActivitySource` and semantic attribute constants.
-
-```csharp
-public static class TenantActivitySource
-{
-    public const string ActivitySourceName = "EricksonLopez.MultiTenancy";
-    public static readonly ActivitySource Source = new(ActivitySourceName, "1.0.0");
-
-    public static class Tags
-    {
-        public const string TenantId = "tenant.id";
-        public const string TenantName = "tenant.name";
-        public const string TenantSource = "tenant.source";
-        public const string TenantIsActive = "tenant.is_active";
-        public const string ResolutionStrategy = "tenant.resolution_strategy";
-    }
-
-    public static class Baggage
-    {
-        // W3C Baggage key for cross-service tenant propagation.
-        public const string TenantId = "tenant.id";
-    }
-}
-```
-
-**Registration:**
-```csharp
-// Register the trace enricher (writes tags to Activity.Current)
-builder.Services.AddMultiTenancyOpenTelemetry();
-
-// Register with OpenTelemetry SDK
-tracerProviderBuilder.AddSource(TenantActivitySource.ActivitySourceName);
-```
-
----
-
-### `TenantActivityExtensions`
-Extension methods for enriching activities with tenant identity.
-
-```csharp
-// Enrich a specific activity (no-op if activity or context is null/unresolved)
-Activity? EnrichWithTenant(this Activity? activity, ITenantContext? tenantContext);
-
-// Enrich Activity.Current
-void EnrichCurrentActivity(ITenantContext? tenantContext);
-
-// Set W3C baggage for cross-service propagation
-Activity? SetTenantBaggage(this Activity? activity, TenantId tenantId);
-
-// Record a resolution failure event on the activity
-Activity? RecordTenantResolutionFailure(this Activity? activity, Error error, string? strategyName = null);
-```
-
----
+- `const string ActivitySourceName = "EricksonLopez.MultiTenancy"`
+- `static readonly ActivitySource Source`
+- `Tags`: `tenant.id`, `tenant.name`, `tenant.source`, `tenant.is_active`, `tenant.resolution_strategy`, `tenant.error_code`, `tenant.error_message`, `tenant.conflict_id`.
+- `Baggage`: `tenant.id`.
 
 ### `TenantMetrics`
-Instruments `System.Diagnostics.Metrics` for multi-tenancy operations.
+- `const string MeterName = "EricksonLopez.MultiTenancy"`
+- `RecordResolutionSuccess(string strategyName, TenantResolutionSource source, double durationMs = 0)`
+- `RecordResolutionFailure(string strategyName, string errorCode, double durationMs = 0)`
+- `RecordResolutionConflict(string firstStrategy, string secondStrategy)`
 
-**Metric instruments (exact names for dashboard configuration):**
+### `TenantActivityExtensions`
+- `EnrichWithTenant(this Activity? activity, ITenantContext? tenantContext)`
+- `EnrichCurrentActivity(ITenantContext? tenantContext)`
+- `SetTenantBaggage(this Activity? activity, TenantId tenantId)`
+- `RecordTenantResolutionFailure(this Activity? activity, Error error, string? strategyName = null)`
 
-| Metric Name | Type | Unit | Description |
-|:---|:---|:---|:---|
-| `tenant.resolution.total` | Counter | `{resolutions}` | Total resolution attempts |
-| `tenant.resolution.failures` | Counter | `{failures}` | Total resolution failures |
-| `tenant.resolution.conflicts` | Counter | `{conflicts}` | Total resolution conflicts |
-| `tenant.resolution.duration` | Histogram | `ms` | Resolution duration in milliseconds |
-
-**Helper methods:**
-```csharp
-// Record success with strategy name, source, and optional duration
-TenantMetrics.RecordResolutionSuccess(string strategyName, TenantResolutionSource source, double durationMs = 0);
-
-// Record failure with strategy name and error code
-TenantMetrics.RecordResolutionFailure(string strategyName, string errorCode, double durationMs = 0);
-
-// Record a conflict between two strategies
-TenantMetrics.RecordResolutionConflict(string firstStrategy, string secondStrategy);
-```
-
-**Registration with OpenTelemetry SDK:**
-```csharp
-meterProviderBuilder.AddMeter(TenantMetrics.MeterName);
-```
-
-> **Note:** `TenantMetrics` is a utility library for application-level instrumentation. Invoke the `Record*` methods from your own middleware or pipeline code where you control the resolution lifecycle.
+### `ITenantTraceEnricher` & `TenantTraceEnricher`
+Injectable DI service for manual span enrichment. Registered with `services.AddMultiTenancyOpenTelemetry()`.
 
 ---
 
-### `TenantTraceEnricher` / `ITenantTraceEnricher`
-Interface and default implementation for enriching telemetry activities from a tenant context.
-
-```csharp
-public interface ITenantTraceEnricher
-{
-    void Enrich(ITenantContext context);
-}
-
-public sealed class TenantTraceEnricher : ITenantTraceEnricher
-```
-
-Registered as `Singleton` via `services.AddMultiTenancyOpenTelemetry()`.
-
----
-
-## 9. Database Dialect Packages
+## 8. Database Dialect Packages
 
 ### PostgreSQL (`EricksonLopez.MultiTenancy.PostgreSql`)
 
-Provides Row Level Security (RLS) enforcement via transaction-scoped `SET LOCAL`.
-
-```csharp
-public static class PostgreSqlRlsExtensions
-{
-    public const string DefaultTenantSessionVariable = "app.current_tenant_id";
-
-    // Executes: SET LOCAL "<sessionVariable>" = '<tenantId>' inside the provided transaction.
-    // Throws InvalidOperationException if transaction is null.
-    // Throws ArgumentException if sessionVariable is null or whitespace.
-    // Throws TenantNotFoundException if tenantContext has an empty TenantId.
-    public static Task SetTenantRlsContextAsync(
-        this DbConnection connection,
-        DbTransaction transaction,        // required — SET LOCAL requires an active transaction
-        ITenantContext tenantContext,
-        string sessionVariable = DefaultTenantSessionVariable,
-        CancellationToken cancellationToken = default);
-
-    // Opens a transaction, executes SetTenantRlsContextAsync, and returns the active transaction.
-    // Rolls back and disposes the transaction if SET LOCAL fails.
-    public static async Task<DbTransaction> BeginTenantTransactionAsync(
-        this DbConnection connection,
-        ITenantContext tenantContext,
-        IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
-        string sessionVariable = DefaultTenantSessionVariable,
-        CancellationToken cancellationToken = default);
-}
-```
-
-Required RLS policy pattern:
-```sql
-CREATE POLICY tenant_isolation ON invoices
-  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
-  WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
-```
-
-See [ADR-009](adr/adr-009-reject-set-session-rls.md) — `SET SESSION` is permanently rejected.
+- `PostgreSqlRlsExtensions.SetTenantRlsContextAsync(this DbConnection connection, DbTransaction transaction, ITenantContext tenantContext, string sessionVariable = DefaultTenantSessionVariable, CancellationToken cancellationToken = default)`
+- `PostgreSqlRlsExtensions.BeginTenantTransactionAsync(this DbConnection connection, ITenantContext tenantContext, IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, string sessionVariable = DefaultTenantSessionVariable, CancellationToken cancellationToken = default)`
+- `PostgreSqlRlsDiagnostics.GetCurrentTenantSettingAsync(this DbConnection connection, DbTransaction? transaction = null, string sessionVariable = DefaultTenantSessionVariable, CancellationToken cancellationToken = default)`
+- `PostgreSqlOrganizationRlsExtensions.SetOrganizationRlsContextAsync(this DbConnection connection, DbTransaction transaction, IOrganizationContext orgContext, OrganizationRlsOptions? options = null, CancellationToken cancellationToken = default)`
+- `PostgreSqlTenantStore` / `PostgreSqlTenantStore<TTenant>`: Persistent relational tenant store querying PostgreSQL tables. Registered with `services.AddPostgreSqlTenantStore()`.
 
 ### SQL Server (`EricksonLopez.MultiTenancy.SqlServer`)
-- `connection.BeginTenantTransactionAsync(tenantContext)`: Atomically sets `sp_set_session_context 'tenant_id', @TenantId`.
-- `connection.ResetTenantSessionContextAsync(transaction)`: Clears session context via `sp_set_session_context 'tenant_id', NULL`.
+
+- `SqlServerSessionContextExtensions.SetTenantSessionContextAsync(this DbConnection connection, ITenantContext tenantContext, DbTransaction? transaction = null, string sessionKey = DefaultTenantSessionKey, bool readOnly = true, CancellationToken cancellationToken = default)`
+- `SqlServerSessionContextExtensions.BeginTenantTransactionAsync(this DbConnection connection, ITenantContext tenantContext, IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, string sessionKey = DefaultTenantSessionKey, bool readOnly = true, CancellationToken cancellationToken = default)`
+- `SqlServerSessionContextExtensions.ResetTenantSessionContextAsync(this DbConnection connection, DbTransaction? transaction = null, string sessionKey = DefaultTenantSessionKey, CancellationToken cancellationToken = default)`
 
 ### MySQL (`EricksonLopez.MultiTenancy.MySql`) & MariaDB (`EricksonLopez.MultiTenancy.MariaDb`)
-- `connection.BeginTenantTransactionAsync(tenantContext)`: Executes `SET @app_tenant_id = @TenantId`.
+
+- `BeginTenantTransactionAsync(this DbConnection connection, ITenantContext tenantContext, IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, string variableName = DefaultTenantVariableName, CancellationToken cancellationToken = default)`
+- `ResetTenantSessionVariableAsync(this DbConnection connection, DbTransaction? transaction = null, string variableName = DefaultTenantVariableName, CancellationToken cancellationToken = default)`
 
 ### Oracle (`EricksonLopez.MultiTenancy.Oracle`)
-- `connection.BeginTenantTransactionAsync(tenantContext)`: Executes `DBMS_SESSION.SET_IDENTIFIER(:tenantId)`.
+
+- `OracleVpdExtensions.BeginTenantTransactionAsync(this DbConnection connection, ITenantContext tenantContext, IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, bool setClientIdProperty = true, CancellationToken cancellationToken = default)`
+- `OracleVpdExtensions.ResetTenantVpdContextAsync(this DbConnection connection, DbTransaction? transaction = null, CancellationToken cancellationToken = default)`
 
 ### SQLite (`EricksonLopez.MultiTenancy.Sqlite`)
-- `ISqliteTenantConnectionFactory`: Opens a per-tenant database file at `tenants/{tenantId}.db`.
-- `connection.BeginTenantTransactionAsync(tenantContext)`: Sets temporary table context for single-database multi-tenancy.
+
+- `ISqliteTenantConnectionFactory`: Connection factory contract for routing per-tenant SQLite database files.
+- `SqliteTenantConnectionFactory`: Factory implementation with token replacement (`{TenantId}`, `{Name}`) and automated directory provisioning.
+- `SqliteTenantExtensions.BeginTenantTransactionAsync`: Local testing isolation using temporary tables.
 
 ---
 
-## 10. EricksonLopez.MultiTenancy.Testing
+## 9. EricksonLopez.MultiTenancy.Testing
 
-Test harness primitives for unit and integration testing:
+Namespace: `EricksonLopez.MultiTenancy.Testing`  
+Assembly: `EricksonLopez.MultiTenancy.Testing.dll`
 
-| Type | Description |
-|:---|:---|
-| `FakeTenantStore<TTenant>` | Pre-populated in-memory store with controllable failures |
-| `FakeTenantResolutionStrategy` | Controllable strategy for mocking resolution outcomes |
-| `TenantContextBuilder` | Fluent builder for constructing `ITenantContext` instances in tests |
-| `TestTenantContext` | Lightweight `ITenantContext` mock for assertion |
-| `FakeDbInfrastructure` | In-memory `DbConnection` + `DbTransaction` test doubles |
+### `TenantContextBuilder`
+Fluent builder for instantiating immutable test contexts:
+- `WithId(Guid id)` / `WithId(TenantId id)`
+- `WithName(string name)`
+- `WithActive(bool isActive)`
+- `WithProperty(string key, string value)`
+- `WithSource(TenantResolutionSource source)`
+- `ITenantContext BuildContext()`
+
+### `TestTenantContext`
+Mutable test double with `Reset()` method and convenience factory `TestTenantContext.Create(tenantId, tenantName, isActive)`.
+
+### ADO.NET Test Doubles
+- `FakeDbConnection`: Captures executed commands in `Commands` (`List<FakeDbCommand>`).
+- `FakeDbCommand`: Captures SQL command text, bound parameters, and associated transaction.
+- `FakeDbParameter` & `FakeDbParameterCollection`: Complete ADO.NET parameter emulation.
+- `FakeDbTransaction`: Records commit and rollback calls.
+- `FakeDbDataReader`: Configurable mock data cursor.
+- `FakeTenantStore` / `FakeTenantStore<TTenant>`: In-memory store test double with fault simulation support.
+- `FakeTenantResolutionStrategy`: Configurable strategy simulating successful or conflicting resolution results in integration tests.

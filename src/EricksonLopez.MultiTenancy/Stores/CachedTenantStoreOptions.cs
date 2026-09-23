@@ -19,4 +19,16 @@ public sealed class CachedTenantStoreOptions
     /// When <see langword="null"/>, sliding expiration is disabled.
     /// </summary>
     public TimeSpan? SlidingExpiration { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum duration a failed/missing tenant lookup is retained in cache to prevent cache stampedes and DoS attacks.
+    /// Defaults to 30 seconds.
+    /// </summary>
+    public TimeSpan NegativeCacheExpirationRelativeToNow { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Gets or sets a value indicating whether negative lookup results (tenant not found or inactive) are cached.
+    /// Default is <see langword="true"/>.
+    /// </summary>
+    public bool EnableNegativeCaching { get; set; } = true;
 }

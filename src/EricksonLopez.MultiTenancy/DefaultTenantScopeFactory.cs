@@ -7,10 +7,11 @@ using Microsoft.Extensions.DependencyInjection;
 namespace EricksonLopez.MultiTenancy;
 
 /// <summary>
-/// Creates isolated dependency injection scopes with pre-populated tenant context for background jobs and message consumers.
+/// Provides a factory that creates isolated dependency injection scopes with pre-populated tenant context for background jobs and message consumers.
 /// </summary>
 public sealed class DefaultTenantScopeFactory : ITenantScopeFactory
 {
+    private static readonly AsyncLocal<DefaultTenantScope?> _currentScope = new();
     private readonly IServiceScopeFactory _scopeFactory;
 
     /// <summary>
@@ -26,6 +27,7 @@ public sealed class DefaultTenantScopeFactory : ITenantScopeFactory
     /// <inheritdoc />
     /// <exception cref="ArgumentNullException"><paramref name="tenant"/> is <see langword="null"/></exception>
     /// <exception cref="ArgumentException"><paramref name="tenant"/> has an empty identifier</exception>
+    /// <exception cref="TenantInactiveException"><paramref name="tenant"/> is inactive</exception>
     public ITenantScope CreateScope(ITenantInfo tenant, TenantResolutionSource source = TenantResolutionSource.ExplicitScope)
     {
         ArgumentNullException.ThrowIfNull(tenant);
@@ -35,60 +37,23 @@ public sealed class DefaultTenantScopeFactory : ITenantScopeFactory
             throw new ArgumentException("Tenant must have a valid, non-empty identifier.", nameof(tenant));
         }
 
+        if (!tenant.IsActive)
+        {
+            throw new TenantInactiveException(tenant.Id);
+        }
+
         var scope = _scopeFactory.CreateScope();
         var context = new TenantContext<ITenantInfo>(tenant, source);
 
         var accessor = scope.ServiceProvider.GetRequiredService<ITenantContextAccessor>();
         accessor.TenantContext = context;
 
-        return new DefaultTenantScope(scope, context);
-    }
-}
+        var previousScope = _currentScope.Value;
+        var previousContext = AmbientTenantContextHolder.Current;
+        AmbientTenantContextHolder.Current = context;
 
-/// <summary>
-/// Default implementation of <see cref="ITenantScope"/> wrapping a DI scope with a bound tenant context.
-/// </summary>
-internal sealed class DefaultTenantScope : ITenantScope
-{
-    private readonly IServiceScope _scope;
-    private bool _disposed;
-
-    /// <inheritdoc />
-    public IServiceProvider ServiceProvider => _scope.ServiceProvider;
-
-    /// <inheritdoc />
-    public ITenantContext TenantContext { get; }
-
-    internal DefaultTenantScope(IServiceScope scope, ITenantContext tenantContext)
-    {
-        _scope = scope;
-        TenantContext = tenantContext;
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            _scope.Dispose();
-            _disposed = true;
-        }
-    }
-
-    /// <inheritdoc />
-    public ValueTask DisposeAsync()
-    {
-        if (!_disposed)
-        {
-            _disposed = true;
-            if (_scope is IAsyncDisposable asyncDisposable)
-            {
-                return asyncDisposable.DisposeAsync();
-            }
-
-            _scope.Dispose();
-        }
-
-        return ValueTask.CompletedTask;
+        var tenantScope = new DefaultTenantScope(scope, context, previousContext, previousScope, s => _currentScope.Value = s);
+        _currentScope.Value = tenantScope;
+        return tenantScope;
     }
 }

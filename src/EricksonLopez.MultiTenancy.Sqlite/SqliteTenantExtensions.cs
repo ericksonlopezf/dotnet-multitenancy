@@ -116,12 +116,22 @@ public static class SqliteTenantExtensions
             await connection.SetTenantContextAsync(tenantContext, transaction, cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch
+        catch (Exception)
         {
-            // Stryker disable once boolean
-            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
-            // Stryker disable once boolean
-            await transaction.DisposeAsync().ConfigureAwait(false);
+            try
+            {
+                // Stryker disable once boolean
+                await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // Ignore rollback exceptions if the connection is already dead
+            }
+            finally
+            {
+                // Stryker disable once boolean
+                await transaction.DisposeAsync().ConfigureAwait(false);
+            }
             throw;
         }
 

@@ -10,11 +10,11 @@ Before opening an issue, please check the comprehensive documentation suite:
 
 - **[Quick Start](docs/quick-start.md):** 5-minute setup and integration tutorial.
 - **[Architecture Guide](docs/architecture.md):** Complete 4-layer defense-in-depth model and design decisions.
-- **[Cookbook](docs/cookbook.md):** 12 production-ready engineering recipes.
+- **[Cookbook](docs/cookbook.md):** 20 production-ready engineering recipes.
 - **[API Reference](docs/api-reference.md):** Complete reference of all types and extension methods.
 - **[Troubleshooting Guide](docs/troubleshooting.md):** Solutions for common configuration and resolution issues.
 - **[Database Dialects](docs/dialects.md):** Configuration guides for PostgreSQL, SQL Server, MySQL, MariaDB, Oracle, and SQLite.
-- **[Showcase Project](samples/EricksonLopez.MultiTenancy.Showcase/):** 10 runnable progressive implementation levels.
+- **[Showcase Project](samples/EricksonLopez.MultiTenancy.Showcase/):** 12 runnable progressive implementation levels (Levels 00 to 11).
 
 ---
 
@@ -35,3 +35,12 @@ Before opening an issue, please check the comprehensive documentation suite:
 ## 4. Security Issues
 
 For security vulnerabilities or potential data leakage risks, do **not** use public issues. Follow the responsible disclosure process outlined in our [Security Policy](SECURITY.md).
+
+---
+
+## 5. Direct Maintainer Contact
+
+For private architectural inquiries, licensing questions, or enterprise advisory, contact the project maintainer directly at:
+
+- **Email:** [ericksonlopezf@gmail.com](mailto:ericksonlopezf@gmail.com)
+

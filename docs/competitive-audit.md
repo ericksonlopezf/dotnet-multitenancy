@@ -1,6 +1,6 @@
 # Competitive Functional Parity Audit — EricksonLopez.MultiTenancy
 
-> **Version:** 1.0 | **Date:** 2026-08-27 | **Library:** EricksonLopez.MultiTenancy v1.0.0
+> **Version:** 2.0 | **Date:** 2026-09-23 | **Library:** EricksonLopez.MultiTenancy v2.0.0
 
 ---
 

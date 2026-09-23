@@ -19,6 +19,9 @@ public sealed class RouteTenantResolutionStrategy : ITenantResolutionStrategy
     /// <inheritdoc />
     public string StrategyName => "Route";
 
+    /// <inheritdoc />
+    public TenantResolutionSource Source => TenantResolutionSource.Route;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="RouteTenantResolutionStrategy"/> class.
     /// </summary>

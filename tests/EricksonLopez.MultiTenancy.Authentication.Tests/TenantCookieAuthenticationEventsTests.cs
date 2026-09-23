@@ -122,7 +122,7 @@ public class TenantCookieAuthenticationEventsTests
     }
 
     [Fact]
-    public async Task ValidatePrincipal_PrincipalWithoutTenantClaim_DoesNotReject()
+    public async Task ValidatePrincipal_PrincipalWithoutTenantClaim_RejectsPrincipalByDefault()
     {
         // Arrange
         var tenant = new TenantInfo(AlphaTenantId, "Alpha");
@@ -142,6 +142,35 @@ public class TenantCookieAuthenticationEventsTests
         var context = CreateCookieContext(httpContext, principal);
 
         var events = new TenantCookieAuthenticationEvents<TenantInfo>();
+
+        // Act
+        await events.ValidatePrincipal(context);
+
+        // Assert: By default, fail-closed enforces rejection when tenant claim is missing
+        context.Principal.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ValidatePrincipal_PrincipalWithoutTenantClaim_WhenRequireClaimFalse_DoesNotReject()
+    {
+        // Arrange
+        var tenant = new TenantInfo(AlphaTenantId, "Alpha");
+        var tenantContext = Substitute.For<ITenantContext>();
+        tenantContext.Tenant.Returns(tenant);
+
+        var accessor = Substitute.For<ITenantContextAccessor>();
+        accessor.TenantContext.Returns(tenantContext);
+
+        var services = new ServiceCollection();
+        services.AddSingleton(accessor);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
+        var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "Alice") }, "CookieAuth");
+        var principal = new ClaimsPrincipal(identity);
+        var context = CreateCookieContext(httpContext, principal);
+
+        var events = new TenantCookieAuthenticationEvents<TenantInfo>("tenant_id", requireTenantClaim: false);
 
         // Act
         await events.ValidatePrincipal(context);
